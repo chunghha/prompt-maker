@@ -44,7 +44,7 @@ func TestGenerate(t *testing.T) {
 				Candidates: []*genai.Candidate{
 					{
 						Content: &genai.Content{
-							// THIS IS THE FIX: The Parts slice must be a slice of POINTERS (*genai.Part).
+							// The Parts slice must be a slice of POINTERS (*genai.Part).
 							Parts: []*genai.Part{{Text: expectedAnswer}},
 						},
 					},

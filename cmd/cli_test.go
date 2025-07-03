@@ -34,7 +34,6 @@ func TestApp_Run(t *testing.T) {
 
 		a := &app{
 			selectModel: func() (string, error) {
-				// Use the static error from the gemini package.
 				return "", gemini.ErrModelSelectionCanceled
 			},
 		}
@@ -50,11 +49,14 @@ func TestApp_Run(t *testing.T) {
 			selectModel: func() (string, error) {
 				return "test-model", nil
 			},
-			startTUI: func(cfg *config.Config, modelName string) error {
+			// FIX: Update the mock function signature to combine string parameters.
+			startTUI: func(cfg *config.Config, modelName, version string) error {
 				assert.NotNil(t, cfg)
 				assert.Equal(t, "test-model", modelName)
+				assert.Equal(t, "dev", version)
 				return errTUI
 			},
+			version: "dev",
 		}
 		err := a.run()
 		require.Error(t, err)

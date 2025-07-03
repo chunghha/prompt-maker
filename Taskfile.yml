@@ -1,12 +1,17 @@
 version: "3"
+
 env:
   PGM_NAME: prompt_maker
+  # Define the version here.
+  VERSION: "1.0.1"
+
 tasks:
   build:
     deps: [typo, format, lint]
     cmds:
+      # Use -ldflags to inject the VERSION into the cmd.version variable at build time.
       - go mod tidy
-      - go build -o $PGM_NAME
+      - go build -ldflags="-X 'prompt-maker/cmd.version=$VERSION'" -o $PGM_NAME
   format:
     cmds:
       - go fmt
