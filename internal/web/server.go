@@ -1,7 +1,6 @@
 package web
 
 import (
-	"fmt"
 	"net/http"
 	"prompt-maker/internal/config"
 	"prompt-maker/internal/gemini"
@@ -45,6 +44,7 @@ func (s *Server) registerRoutes() {
 	s.e.POST("/prompt", s.handlePrompt)
 	s.e.POST("/execute", s.handleExecute)
 	s.e.POST("/update-footer", s.handleUpdateFooter)
+	s.e.POST("/clear", handleClear)
 }
 
 func (s *Server) Start(addr string) error {
@@ -65,33 +65,32 @@ func (s *Server) handleIndex(c echo.Context) error {
 func (s *Server) handlePrompt(c echo.Context) error {
 	userInput := c.FormValue("prompt")
 
-	modelName := c.FormValue("model") // Get model from form
+	modelName := c.FormValue("model")
 	if userInput == "" || modelName == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Prompt and model cannot be empty")
+		return render(c, errorComponent("Prompt and model cannot be empty."))
 	}
 
-	// Pass the modelName to the Generate method.
 	craftedPrompt, err := s.generator.Generate(c.Request().Context(), modelName, userInput)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("Failed to generate prompt: %v", err))
+		c.Logger().Errorf("Failed to generate prompt: %v", err)
+		return render(c, errorComponent("The AI failed to generate a response. Please try again."))
 	}
 
-	// Pass the modelName to the template component.
 	return render(c, craftedPromptComponent(craftedPrompt, modelName))
 }
 
 func (s *Server) handleExecute(c echo.Context) error {
 	craftedPrompt := c.FormValue("prompt")
 
-	modelName := c.FormValue("model") // Get model from form
+	modelName := c.FormValue("model")
 	if craftedPrompt == "" || modelName == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Prompt and model cannot be empty")
+		return render(c, errorComponent("Prompt and model cannot be empty."))
 	}
 
-	// Pass the modelName to the Execute method.
 	finalAnswer, err := s.generator.Execute(c.Request().Context(), modelName, craftedPrompt)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("Failed to execute prompt: %v", err))
+		c.Logger().Errorf("Failed to execute prompt: %v", err)
+		return render(c, errorComponent("The AI failed to execute the prompt. Please try again."))
 	}
 
 	return render(c, finalAnswerComponent(finalAnswer))
@@ -100,11 +99,14 @@ func (s *Server) handleExecute(c echo.Context) error {
 func (s *Server) handleUpdateFooter(c echo.Context) error {
 	modelName := c.FormValue("model")
 	if modelName == "" {
-		// Fallback to the default if the model is somehow empty.
 		modelName = config.DefaultModel
 	}
 
 	return render(c, footerComponent(s.version, modelName))
+}
+
+func handleClear(c echo.Context) error {
+	return c.HTML(http.StatusOK, "")
 }
 
 func render(c echo.Context, component templ.Component) error {

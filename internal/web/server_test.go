@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,9 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/require"
 )
+
+// Rename the error variable to follow Go's initialism convention.
+var errMockAPIFailed = errors.New("mock API failed")
 
 // mockPromptGenerator is updated to match the new interface signatures.
 type mockPromptGenerator struct {
@@ -68,7 +72,6 @@ func TestHandlePrompt(t *testing.T) {
 	server.e.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusOK, w.Code)
-	// FIX: Update assertions to match the new data-* attribute approach.
 	require.Contains(t, w.Body.String(), `onclick="copyRawText(this)"`)
 	require.Contains(t, w.Body.String(), `data-target-id="raw-crafted-prompt"`)
 	require.Contains(t, w.Body.String(), `<div id="raw-crafted-prompt" class="hidden">This is the **crafted** prompt.</div>`)
@@ -155,4 +158,64 @@ func TestHandleIndex_WithLoadingIndicator(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 	require.Contains(t, w.Body.String(), `hx-indicator="#prompt-indicator"`)
 	require.Contains(t, w.Body.String(), `id="prompt-indicator"`)
+}
+
+func TestHandlePrompt_ApiError(t *testing.T) {
+	const (
+		userFacingErrorMessage = "The AI failed to generate a response. Please try again."
+		selectedModel          = "gemini-2.5-flash"
+	)
+
+	mockGen := &mockPromptGenerator{
+		GenerateFunc: func(_ context.Context, _, _ string) (string, error) {
+			// Use the correctly named error variable.
+			return "", errMockAPIFailed
+		},
+	}
+
+	server, err := NewServer(Config{Generator: mockGen, Version: "test"})
+	require.NoError(t, err)
+
+	form := strings.NewReader("prompt=test&model=" + selectedModel)
+	req := httptest.NewRequest(http.MethodPost, "/prompt", form)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+
+	w := httptest.NewRecorder()
+
+	server.e.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Contains(t, w.Body.String(), `class="alert alert-error"`)
+	require.Contains(t, w.Body.String(), userFacingErrorMessage)
+}
+
+func TestHandleIndex_WithClearButton(t *testing.T) {
+	mockGen := &mockPromptGenerator{}
+	server, err := NewServer(Config{Generator: mockGen, Version: "test"})
+	require.NoError(t, err)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+	server.e.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	// Assert that the clear button exists with the correct HTMX attributes. This will fail.
+	require.Contains(t, w.Body.String(), `hx-post="/clear"`)
+	require.Contains(t, w.Body.String(), `hx-target="#response-container"`)
+}
+
+func TestHandleClear(t *testing.T) {
+	mockGen := &mockPromptGenerator{}
+	server, err := NewServer(Config{Generator: mockGen, Version: "test"})
+	require.NoError(t, err)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/clear", http.NoBody)
+
+	// This will fail because the endpoint doesn't exist.
+	server.e.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	// Assert that the response body is empty.
+	require.Empty(t, w.Body.String())
 }

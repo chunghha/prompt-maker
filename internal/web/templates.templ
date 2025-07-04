@@ -5,10 +5,9 @@ templ footerComponent(version, modelName string) {
 	<p>Prompt Maker v{ version } | Model: { modelName }</p>
 }
 
-// copyButtonComponent now uses a data-* attribute for the target ID.
+// copyButtonComponent creates a hidden div with raw text and a button to copy it.
 templ copyButtonComponent(rawText, targetID string) {
 	<div class="flex justify-end">
-		<!-- Use a static onclick and a data-* attribute for the dynamic ID. -->
 		<button class="btn btn-sm btn-info" onclick="copyRawText(this)" data-target-id={ targetID }>Copy</button>
 	</div>
 	<div id={ targetID } class="hidden">{ rawText }</div>
@@ -86,12 +85,9 @@ templ indexPage(version, defaultModel string, models []string) {
 						</label>
 						<select name="model" class="select select-bordered" hx-post="/update-footer" hx-target="#footer-content" hx-swap="innerHTML" hx-trigger="change">
 							for _, model := range models {
-								<option
-									value={ model }
-									if model == defaultModel {
-										selected
-									}
-								>{ model }</option>
+								<option value={ model } if model == defaultModel {
+	selected
+}>{ model }</option>
 							}
 						</select>
 					</div>
@@ -102,7 +98,12 @@ templ indexPage(version, defaultModel string, models []string) {
 					</button>
 				</form>
 				<div class="divider mt-8"></div>
-				<h3 class="text-2xl font-bold">Response</h3>
+				<div class="flex justify-between items-center">
+					<h3 class="text-2xl font-bold">Response</h3>
+					<button class="btn btn-ghost btn-sm" hx-post="/clear" hx-target="#response-container" hx-swap="innerHTML">
+						Clear
+					</button>
+				</div>
 				<div id="response-container" class="bg-base-200 p-4 rounded-box min-h-[150px] mt-4 whitespace-pre-wrap">
 					<!-- The crafted prompt will be loaded here -->
 				</div>
@@ -128,7 +129,7 @@ templ indexPage(version, defaultModel string, models []string) {
 					}
 				})();
 
-				// FIX: This function now reads the target ID from the button's dataset.
+				// This function copies text from a hidden element to the clipboard.
 				function copyRawText(button) {
 					const targetId = button.dataset.targetId;
 					const textToCopy = document.getElementById(targetId).innerText;
@@ -147,7 +148,7 @@ templ indexPage(version, defaultModel string, models []string) {
 	</html>
 }
 
-// craftedPromptComponent now includes the copy button component.
+// craftedPromptComponent is the partial for the first AI response.
 templ craftedPromptComponent(craftedPrompt, modelName string) {
 	<div class="prose bg-base-100 p-4 rounded-box max-w-none">
 		@copyButtonComponent(craftedPrompt, "raw-crafted-prompt")
@@ -169,5 +170,13 @@ templ finalAnswerComponent(answer string) {
 	<div class="prose bg-base-100 p-4 rounded-box max-w-none">
 		@copyButtonComponent(answer, "raw-final-answer")
 		<p>{ answer }</p>
+	</div>
+}
+
+// errorComponent displays a styled error message.
+templ errorComponent(errorMessage string) {
+	<div class="alert alert-error">
+		<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+		<span>Error: { errorMessage }</span>
 	</div>
 }
