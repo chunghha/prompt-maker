@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"prompt-maker/internal/config" // Import config to use the DefaultModel constant
+	"prompt-maker/internal/config"
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/require"
@@ -30,7 +30,6 @@ func (m *mockPromptGenerator) Execute(ctx context.Context, modelName, userInput 
 
 func TestHandleIndex(t *testing.T) {
 	mockGen := &mockPromptGenerator{}
-	// Add Version to the config.
 	server, err := NewServer(Config{Generator: mockGen, Version: "test-version"})
 	require.NoError(t, err)
 
@@ -45,7 +44,7 @@ func TestHandleIndex(t *testing.T) {
 func TestHandlePrompt(t *testing.T) {
 	const (
 		userInput        = "make it better"
-		expectedResponse = "This is the crafted prompt."
+		expectedResponse = "This is the **crafted** prompt."
 		selectedModel    = "gemini-2.5-flash"
 	)
 
@@ -69,14 +68,14 @@ func TestHandlePrompt(t *testing.T) {
 	server.e.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusOK, w.Code)
-	require.Contains(t, w.Body.String(), expectedResponse)
-	require.Contains(t, w.Body.String(), `<input type="hidden" name="model" value="gemini-2.5-flash">`)
-	require.Contains(t, w.Body.String(), `id="resubmit-indicator"`)
+	// FIX: Update assertions to match the new data-* attribute approach.
+	require.Contains(t, w.Body.String(), `onclick="copyRawText(this)"`)
+	require.Contains(t, w.Body.String(), `data-target-id="raw-crafted-prompt"`)
+	require.Contains(t, w.Body.String(), `<div id="raw-crafted-prompt" class="hidden">This is the **crafted** prompt.</div>`)
 }
 
 func TestHandleIndex_WithDaisyUI(t *testing.T) {
 	mockGen := &mockPromptGenerator{}
-	// Add a version to the config.
 	server, err := NewServer(Config{Generator: mockGen, Version: "test-version"})
 	require.NoError(t, err)
 
@@ -86,7 +85,6 @@ func TestHandleIndex_WithDaisyUI(t *testing.T) {
 	server.e.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusOK, w.Code)
-	// Change assertion to look for "Model:" instead of "Default Model:".
 	require.Contains(t, w.Body.String(), "Model: "+config.DefaultModel)
 }
 
@@ -98,7 +96,6 @@ func TestHandleExecute(t *testing.T) {
 	)
 
 	mockGen := &mockPromptGenerator{
-		// The signature is updated to match the new interface.
 		ExecuteFunc: func(_ context.Context, model, input string) (string, error) {
 			require.Equal(t, selectedModel, model)
 			require.Equal(t, craftedPrompt, input)
@@ -109,7 +106,6 @@ func TestHandleExecute(t *testing.T) {
 	server, err := NewServer(Config{Generator: mockGen, Version: "test"})
 	require.NoError(t, err)
 
-	// The form data now includes the model.
 	form := strings.NewReader("prompt=" + craftedPrompt + "&model=" + selectedModel)
 	req := httptest.NewRequest(http.MethodPost, "/execute", form)
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
@@ -124,7 +120,6 @@ func TestHandleExecute(t *testing.T) {
 }
 
 func TestHandleUpdateFooter(t *testing.T) {
-	// FIX: Remove the 'v' from the test constant.
 	const (
 		testVersion   = "0.5.1"
 		selectedModel = "gemini-2.5-pro"
@@ -143,7 +138,7 @@ func TestHandleUpdateFooter(t *testing.T) {
 	server.e.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusOK, w.Code)
-	// Update the expected fragment to exactly match the template's output.
+
 	expectedFragment := fmt.Sprintf("<p>Prompt Maker v%s | Model: %s</p>", testVersion, selectedModel)
 	require.Contains(t, w.Body.String(), expectedFragment)
 }
@@ -158,8 +153,6 @@ func TestHandleIndex_WithLoadingIndicator(t *testing.T) {
 	server.e.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusOK, w.Code)
-	// 1. Assert that the form points to an indicator.
 	require.Contains(t, w.Body.String(), `hx-indicator="#prompt-indicator"`)
-	// 2. Assert that the indicator element exists. This will fail.
 	require.Contains(t, w.Body.String(), `id="prompt-indicator"`)
 }

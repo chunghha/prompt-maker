@@ -5,6 +5,15 @@ templ footerComponent(version, modelName string) {
 	<p>Prompt Maker v{ version } | Model: { modelName }</p>
 }
 
+// copyButtonComponent now uses a data-* attribute for the target ID.
+templ copyButtonComponent(rawText, targetID string) {
+	<div class="flex justify-end">
+		<!-- Use a static onclick and a data-* attribute for the dynamic ID. -->
+		<button class="btn btn-sm btn-info" onclick="copyRawText(this)" data-target-id={ targetID }>Copy</button>
+	</div>
+	<div id={ targetID } class="hidden">{ rawText }</div>
+}
+
 // indexPage is the main page template.
 templ indexPage(version, defaultModel string, models []string) {
 	<!DOCTYPE html>
@@ -14,8 +23,7 @@ templ indexPage(version, defaultModel string, models []string) {
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>Prompt Maker</title>
 			<link href="/static/css/output.css" rel="stylesheet" type="text/css"/>
-			<!-- Updated HTMX to version 2.0.5 -->
-			<script src="https://unpkg.com/htmx.org@2.0.5/dist/htmx.min.js" integrity="sha384-t4DxZSyQK+0Uv4jzy5B0QyHyWQD2GFURUmxKMBVww9+e2EJ0ei/vCvv7+79z0fkr" crossorigin="anonymous"></script>
+			<script src="https://unpkg.com/htmx.org@2.0.5" integrity="sha384-t4DxZSyQK+0Uv4jzy5B0QyHyWQD2GFURUmxKMBVww9+e2EJ0ei/vCvv7+79z0fkr" crossorigin="anonymous"></script>
 		</head>
 		<body class="font-sans">
 			<div class="container mx-auto max-w-4xl p-8">
@@ -119,14 +127,30 @@ templ indexPage(version, defaultModel string, models []string) {
 						document.documentElement.setAttribute('data-theme', savedTheme);
 					}
 				})();
+
+				// FIX: This function now reads the target ID from the button's dataset.
+				function copyRawText(button) {
+					const targetId = button.dataset.targetId;
+					const textToCopy = document.getElementById(targetId).innerText;
+					navigator.clipboard.writeText(textToCopy).then(() => {
+						const originalText = button.innerText;
+						button.innerText = 'Copied!';
+						setTimeout(() => {
+							button.innerText = originalText;
+						}, 2000); // Revert back after 2 seconds
+					}).catch(err => {
+						console.error('Failed to copy text: ', err);
+					});
+				}
 			</script>
 		</body>
 	</html>
 }
 
-// craftedPromptComponent is the partial for the first AI response.
+// craftedPromptComponent now includes the copy button component.
 templ craftedPromptComponent(craftedPrompt, modelName string) {
 	<div class="prose bg-base-100 p-4 rounded-box max-w-none">
+		@copyButtonComponent(craftedPrompt, "raw-crafted-prompt")
 		<p>{ craftedPrompt }</p>
 	</div>
 	<br/>
@@ -140,9 +164,10 @@ templ craftedPromptComponent(craftedPrompt, modelName string) {
 	</form>
 }
 
-// finalAnswerComponent is the partial for the final AI response.
+// finalAnswerComponent now also includes the copy button component.
 templ finalAnswerComponent(answer string) {
 	<div class="prose bg-base-100 p-4 rounded-box max-w-none">
+		@copyButtonComponent(answer, "raw-final-answer")
 		<p>{ answer }</p>
 	</div>
 }
