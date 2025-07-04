@@ -8,7 +8,7 @@ templ footerComponent(version, modelName string) {
 // copyButtonComponent creates a hidden div with raw text and a button to copy it.
 templ copyButtonComponent(rawText, targetID string) {
 	<div class="flex justify-end">
-		<button class="btn btn-sm btn-info" onclick="copyRawText(this)" data-target-id={ targetID }>Copy</button>
+		<button class="btn btn-md btn-info" onclick="copyRawText(this)" data-target-id={ targetID }>Copy</button>
 	</div>
 	<div id={ targetID } class="hidden">{ rawText }</div>
 }
@@ -29,7 +29,11 @@ templ indexPage(version, defaultModel string, models []string) {
 				<!-- Header with Theme Switcher -->
 				<div class="navbar bg-base-100 rounded-box mb-8">
 					<div class="flex-1">
-						<a class="btn btn-ghost text-2xl font-serif">Prompt Maker</a>
+						<h1
+							class="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent pb-2 animate-gradient"
+						>
+							Prompt Maker
+						</h1>
 					</div>
 					<div class="flex-none">
 						<div id="theme-switcher" class="dropdown dropdown-end">
@@ -85,9 +89,12 @@ templ indexPage(version, defaultModel string, models []string) {
 						</label>
 						<select name="model" class="select select-bordered" hx-post="/update-footer" hx-target="#footer-content" hx-swap="innerHTML" hx-trigger="change">
 							for _, model := range models {
-								<option value={ model } if model == defaultModel {
-	selected
-}>{ model }</option>
+								<option
+									value={ model }
+									if model == defaultModel {
+										selected
+									}
+								>{ model }</option>
 							}
 						</select>
 					</div>
@@ -99,8 +106,8 @@ templ indexPage(version, defaultModel string, models []string) {
 				</form>
 				<div class="divider mt-8"></div>
 				<div class="flex justify-between items-center">
-					<h3 class="text-2xl font-bold">Response</h3>
-					<button class="btn btn-ghost btn-sm" hx-post="/clear" hx-target="#response-container" hx-swap="innerHTML">
+					<h3 class="text-2xl font-serif font-semibold">Response</h3>
+					<button class="btn btn-md btn-warning" hx-post="/clear" hx-target="#response-container" hx-swap="innerHTML">
 						Clear
 					</button>
 				</div>
