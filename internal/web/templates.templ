@@ -14,7 +14,8 @@ templ indexPage(version, defaultModel string, models []string) {
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>Prompt Maker</title>
 			<link href="/static/css/output.css" rel="stylesheet" type="text/css"/>
-			<script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+			<!-- Updated HTMX to version 2.0.5 -->
+			<script src="https://unpkg.com/htmx.org@2.0.5/dist/htmx.min.js" integrity="sha384-t4DxZSyQK+0Uv4jzy5B0QyHyWQD2GFURUmxKMBVww9+e2EJ0ei/vCvv7+79z0fkr" crossorigin="anonymous"></script>
 		</head>
 		<body class="font-sans">
 			<div class="container mx-auto max-w-4xl p-8">
@@ -77,9 +78,12 @@ templ indexPage(version, defaultModel string, models []string) {
 						</label>
 						<select name="model" class="select select-bordered" hx-post="/update-footer" hx-target="#footer-content" hx-swap="innerHTML" hx-trigger="change">
 							for _, model := range models {
-								<option value={ model } if model == defaultModel {
-	selected
-}>{ model }</option>
+								<option
+									value={ model }
+									if model == defaultModel {
+										selected
+									}
+								>{ model }</option>
 							}
 						</select>
 					</div>

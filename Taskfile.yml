@@ -2,7 +2,7 @@ version: "3"
 
 env:
   PGM_NAME: prompt_maker
-  VERSION: "0.5.4"
+  VERSION: "0.5.5"
 
 tasks:
   # --- Frontend Tasks ---
