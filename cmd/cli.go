@@ -1,52 +1,83 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"prompt-maker/internal/config"
 	"prompt-maker/internal/gemini"
 	"prompt-maker/internal/tui"
+	"prompt-maker/internal/web"
 
 	"github.com/spf13/cobra"
+	"google.golang.org/genai"
 )
 
-// This variable will be set by the linker during the build process.
-var version = "dev" // Default value for local `go run`
+var version = "dev"
 
-// selectModelFn and startTUIFn define function types for our dependencies.
 type selectModelFn func() (string, error)
-
-// The TUI now needs the version string.
 type startTUIFn func(*config.Config, string, string) error
 
-// app holds the dependencies and logic of the application.
 type app struct {
 	selectModel selectModelFn
 	startTUI    startTUIFn
 	version     string
 }
 
-// NewRootCmd creates and configures the main command for the application.
 func NewRootCmd() *cobra.Command {
-	// Instantiate the app with real dependencies.
 	a := &app{
 		selectModel: gemini.SelectModel,
 		startTUI:    tui.Start,
-		version:     version, // Use the version variable.
+		version:     version,
 	}
+
+	var webMode bool
 
 	cmd := &cobra.Command{
 		Use:   "prompt-maker",
 		Short: "Crafts optimized prompts for AI models.",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return a.run()
+			if webMode {
+				return a.runWeb()
+			}
+			return a.runTUI()
 		},
 	}
+
+	cmd.Flags().BoolVar(&webMode, "web", false, "Run in web server mode on port 8080")
 
 	return cmd
 }
 
-// run contains the core application logic, making it testable and separate from cobra.
-func (a *app) run() error {
+func (a *app) runWeb() error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	ctx := context.Background()
+
+	client, err := genai.NewClient(ctx, &genai.ClientConfig{APIKey: cfg.APIKey})
+	if err != nil {
+		return fmt.Errorf("failed to create genai client: %w", err)
+	}
+
+	promptGenerator := web.NewGeminiPromptGenerator(client, config.DefaultModel)
+	webCfg := web.Config{
+		Generator: promptGenerator,
+		Version:   a.version,
+	}
+
+	server, err := web.NewServer(webCfg)
+	if err != nil {
+		return fmt.Errorf("failed to create web server: %w", err)
+	}
+
+	fmt.Printf("Starting web server on http://localhost:8080 using model %s\n", config.DefaultModel)
+
+	return server.Start(":8080")
+}
+
+func (a *app) runTUI() error {
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
@@ -59,10 +90,5 @@ func (a *app) run() error {
 
 	fmt.Printf("Using model: %s\n", selectedModel)
 
-	// Pass the version to the TUI starter.
-	if err := a.startTUI(cfg, selectedModel, a.version); err != nil {
-		return fmt.Errorf("tui error: %w", err)
-	}
-
-	return nil
+	return a.startTUI(cfg, selectedModel, a.version)
 }

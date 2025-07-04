@@ -19,12 +19,12 @@ func TestNewRootCmd(t *testing.T) {
 	assert.Equal(t, "Crafts optimized prompts for AI models.", cmd.Short)
 }
 
-func TestApp_Run(t *testing.T) {
+func TestApp_RunTUI(t *testing.T) { // <-- Renamed test function for clarity
 	t.Run("ConfigLoadError", func(t *testing.T) {
 		t.Setenv("GEMINI_API_KEY", "")
 
 		a := &app{}
-		err := a.run()
+		err := a.runTUI() // <-- Use runTUI() instead of run()
 		require.Error(t, err)
 		assert.ErrorIs(t, err, config.ErrAPIKeyNotFound)
 	})
@@ -37,7 +37,7 @@ func TestApp_Run(t *testing.T) {
 				return "", gemini.ErrModelSelectionCanceled
 			},
 		}
-		err := a.run()
+		err := a.runTUI() // <-- Use runTUI() instead of run()
 		require.Error(t, err)
 		assert.ErrorIs(t, err, gemini.ErrModelSelectionCanceled)
 	})
@@ -49,7 +49,6 @@ func TestApp_Run(t *testing.T) {
 			selectModel: func() (string, error) {
 				return "test-model", nil
 			},
-			// Update the mock function signature to combine string parameters.
 			startTUI: func(cfg *config.Config, modelName, version string) error {
 				assert.NotNil(t, cfg)
 				assert.Equal(t, "test-model", modelName)
@@ -58,7 +57,7 @@ func TestApp_Run(t *testing.T) {
 			},
 			version: "dev",
 		}
-		err := a.run()
+		err := a.runTUI() // <-- Use runTUI() instead of run()
 		require.Error(t, err)
 		assert.ErrorIs(t, err, errTUI)
 	})

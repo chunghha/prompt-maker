@@ -3,35 +3,62 @@ version: "3"
 env:
   PGM_NAME: prompt_maker
   # Define the version here.
-  VERSION: "0.4.0"
+  VERSION: "0.5.0"
 
 tasks:
+  templ:gen:
+    desc: "Generate Go code from templ files first."
+    cmds:
+      - templ generate
+
   build:
-    deps: [typo, format, lint]
+    desc: "Build the application binary."
+    deps: [typo, format, lint, templ:gen]
     cmds:
       # Use -ldflags to inject the VERSION into the cmd.version variable at build time.
       - go mod tidy
       - go build -ldflags="-X 'prompt-maker/cmd.version=$VERSION'" -o $PGM_NAME
+
   format:
+    desc: "Format the Go source code."
     cmds:
       - go fmt
+
   install:
+    desc: "Build and install the binary to ~/bin/."
     deps: [build]
     cmds:
       - cp $PGM_NAME ~/bin/
+
   lint:
+    desc: "Run all linters."
     deps: [lint:wsl]
     cmds:
       - golangci-lint run -v
+
   lint:wsl:
+    desc: "Run the WSL linter."
     cmds:
       - golangci-lint run --no-config --enable wsl_v5 --fix
+
+  run:web:
+    desc: "Run the application in web server mode."
+    deps: [build]
+    cmds:
+      - echo "Starting web server on http://localhost:8080"
+      - ./$PGM_NAME --web
+
   test:
+    desc: "Run all tests."
     cmds:
       - go test ./...
+
   typo:
+    desc: "Check for typos in source files."
     cmds:
       - typos *.go
+
   typo:fix:
+    desc: "Automatically fix typos in source files."
     cmds:
       - typos -w *.go

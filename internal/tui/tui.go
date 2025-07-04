@@ -25,7 +25,6 @@ import (
 
 const (
 	appName                   = "Prompt Maker"
-	modelTemperature          = 0.1
 	textInputCharLimit        = 2000
 	horizontalPadding         = 2
 	headerPadding             = 1
@@ -405,7 +404,7 @@ func sendPromptCmd(m *model, userPrompt string, useLyra bool) tea.Cmd {
 			return errMsg{err: errPromptEmpty}
 		}
 
-		genConfig := &genai.GenerateContentConfig{Temperature: genai.Ptr(float32(modelTemperature))}
+		genConfig := &genai.GenerateContentConfig{Temperature: genai.Ptr(float32(config.DefaultModelTemperature))}
 
 		session, err := m.genaiClient.Chats.Create(m.ctx, m.selectedModel, genConfig, nil)
 		if err != nil {
