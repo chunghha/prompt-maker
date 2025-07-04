@@ -1,0 +1,52 @@
+name: Release Go Binaries
+
+on:
+  push:
+    tags:
+      - "v*.*.*" # This workflow runs on tags like v1.0.0, v1.1.0, etc.
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # This permission is required to create a release and upload assets.
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24" # Use a recent stable version of Go
+
+      - name: Get version from tag
+        id: get_version
+        # This step extracts the tag name (e.g., "v1.0.1") and sets it as an environment variable.
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Build binaries for multiple platforms
+        # This step uses a matrix-like approach to build for different OS/Architecture combinations.
+        run: |
+          # Linux
+          GOOS=linux GOARCH=amd64 go build -ldflags="-X 'prompt-maker/cmd.version=${{ env.VERSION }}'" -o prompt-maker-linux-amd64 .
+          GOOS=linux GOARCH=arm64 go build -ldflags="-X 'prompt-maker/cmd.version=${{ env.VERSION }}'" -o prompt-maker-linux-arm64 .
+          # macOS
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-X 'prompt-maker/cmd.version=${{ env.VERSION }}'" -o prompt-maker-darwin-amd64 .
+          GOOS=darwin GOARCH=arm64 go build -ldflags="-X 'prompt-maker/cmd.version=${{ env.VERSION }}'" -o prompt-maker-darwin-arm64 .
+          # Windows
+          GOOS=windows GOARCH=amd64 go build -ldflags="-X 'prompt-maker/cmd.version=${{ env.VERSION }}'" -o prompt-maker-windows-amd64.exe .
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          # The body of the release will be automatically generated from your commit history.
+          # You can also add a custom release notes file if you prefer.
+          generate_release_notes: true
+          files: |
+            prompt-maker-linux-amd64
+            prompt-maker-linux-arm64
+            prompt-maker-darwin-amd64
+            prompt-maker-darwin-arm64
+            prompt-maker-windows-amd64.exe
