@@ -37,7 +37,7 @@ func footerComponent(version, modelName string) templ.Component {
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(version)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 6, Col: 27}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 5, Col: 27}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -50,7 +50,7 @@ func footerComponent(version, modelName string) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(modelName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 6, Col: 50}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 5, Col: 50}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -86,7 +86,7 @@ func indexPage(version, defaultModel string, models []string) templ.Component {
 			templ_7745c5c3_Var4 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<!doctype html><html lang=\"en\" data-theme=\"light\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Prompt Maker</title><link href=\"/static/css/output.css\" rel=\"stylesheet\" type=\"text/css\"><script src=\"https://unpkg.com/htmx.org@1.9.10\" integrity=\"sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC\" crossorigin=\"anonymous\"></script></head><body class=\"font-sans\"><div class=\"container mx-auto max-w-4xl p-8\"><!-- Header with Theme Switcher --><div class=\"navbar bg-base-100 rounded-box mb-8\"><div class=\"flex-1\"><a class=\"btn btn-ghost text-2xl font-serif\">Prompt Maker</a></div><div class=\"flex-none\"><div id=\"theme-switcher\" class=\"dropdown dropdown-end\"><div tabindex=\"0\" role=\"button\" class=\"btn\">Theme <svg width=\"12px\" height=\"12px\" class=\"h-2 w-2 fill-current opacity-60 inline-block\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 2048 2048\"><path d=\"M1799 349l242 241-1017 1017L7 590l242-241 775 775 775-775z\"></path></svg></div><ul tabindex=\"0\" class=\"dropdown-content z-[1] p-2 shadow-2xl bg-base-300 rounded-box w-52 h-96 overflow-y-auto\"><li><a onclick=\"setTheme('light')\">light</a></li><li><a onclick=\"setTheme('dark')\">dark</a></li><li><a onclick=\"setTheme('cupcake')\">cupcake</a></li><li><a onclick=\"setTheme('bumblebee')\">bumblebee</a></li><li><a onclick=\"setTheme('emerald')\">emerald</a></li><li><a onclick=\"setTheme('corporate')\">corporate</a></li><li><a onclick=\"setTheme('synthwave')\">synthwave</a></li><li><a onclick=\"setTheme('retro')\">retro</a></li><li><a onclick=\"setTheme('cyberpunk')\">cyberpunk</a></li><li><a onclick=\"setTheme('valentine')\">valentine</a></li><li><a onclick=\"setTheme('halloween')\">halloween</a></li><li><a onclick=\"setTheme('garden')\">garden</a></li><li><a onclick=\"setTheme('forest')\">forest</a></li><li><a onclick=\"setTheme('aqua')\">aqua</a></li><li><a onclick=\"setTheme('lofi')\">lofi</a></li><li><a onclick=\"setTheme('pastel')\">pastel</a></li><li><a onclick=\"setTheme('fantasy')\">fantasy</a></li><li><a onclick=\"setTheme('wireframe')\">wireframe</a></li><li><a onclick=\"setTheme('black')\">black</a></li><li><a onclick=\"setTheme('luxury')\">luxury</a></li><li><a onclick=\"setTheme('dracula')\">dracula</a></li><li><a onclick=\"setTheme('cmyk')\">cmyk</a></li><li><a onclick=\"setTheme('autumn')\">autumn</a></li><li><a onclick=\"setTheme('business')\">business</a></li><li><a onclick=\"setTheme('acid')\">acid</a></li><li><a onclick=\"setTheme('lemonade')\">lemonade</a></li><li><a onclick=\"setTheme('night')\">night</a></li><li><a onclick=\"setTheme('coffee')\">coffee</a></li><li><a onclick=\"setTheme('winter')\">winter</a></li><li><a onclick=\"setTheme('dim')\">dim</a></li><li><a onclick=\"setTheme('nord')\">nord</a></li><li><a onclick=\"setTheme('sunset')\">sunset</a></li><li><a onclick=\"setTheme('milkshake')\">milkshake</a></li><li><a onclick=\"setTheme('mindful')\">mindful</a></li><li><a onclick=\"setTheme('pursuit')\">pursuit</a></li></ul></div></div></div><p class=\"text-lg\">Enter a rough prompt and Lyra will optimize it for you.</p><form id=\"prompt-form\" hx-post=\"/prompt\" hx-target=\"#response-container\" hx-swap=\"innerHTML\" class=\"mt-4\"><div class=\"form-control w-full max-w-xs mb-4\"><label class=\"label\"><span class=\"label-text\">Select a Model</span></label> <select name=\"model\" class=\"select select-bordered\" hx-post=\"/update-footer\" hx-target=\"#footer-content\" hx-swap=\"innerHTML\" hx-trigger=\"change\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<!doctype html><html lang=\"en\" data-theme=\"light\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Prompt Maker</title><link href=\"/static/css/output.css\" rel=\"stylesheet\" type=\"text/css\"><script src=\"https://unpkg.com/htmx.org@1.9.10\" integrity=\"sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC\" crossorigin=\"anonymous\"></script></head><body class=\"font-sans\"><div class=\"container mx-auto max-w-4xl p-8\"><!-- Header with Theme Switcher --><div class=\"navbar bg-base-100 rounded-box mb-8\"><div class=\"flex-1\"><a class=\"btn btn-ghost text-2xl font-serif\">Prompt Maker</a></div><div class=\"flex-none\"><div id=\"theme-switcher\" class=\"dropdown dropdown-end\"><div tabindex=\"0\" role=\"button\" class=\"btn\">Theme <svg width=\"12px\" height=\"12px\" class=\"h-2 w-2 fill-current opacity-60 inline-block\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 2048 2048\"><path d=\"M1799 349l242 241-1017 1017L7 590l242-241 775 775 775-775z\"></path></svg></div><ul tabindex=\"0\" class=\"dropdown-content z-[1] p-2 shadow-2xl bg-base-300 rounded-box w-52 h-96 overflow-y-auto\"><li><a onclick=\"setTheme('light')\">light</a></li><li><a onclick=\"setTheme('dark')\">dark</a></li><li><a onclick=\"setTheme('cupcake')\">cupcake</a></li><li><a onclick=\"setTheme('bumblebee')\">bumblebee</a></li><li><a onclick=\"setTheme('emerald')\">emerald</a></li><li><a onclick=\"setTheme('corporate')\">corporate</a></li><li><a onclick=\"setTheme('synthwave')\">synthwave</a></li><li><a onclick=\"setTheme('retro')\">retro</a></li><li><a onclick=\"setTheme('cyberpunk')\">cyberpunk</a></li><li><a onclick=\"setTheme('valentine')\">valentine</a></li><li><a onclick=\"setTheme('halloween')\">halloween</a></li><li><a onclick=\"setTheme('garden')\">garden</a></li><li><a onclick=\"setTheme('forest')\">forest</a></li><li><a onclick=\"setTheme('aqua')\">aqua</a></li><li><a onclick=\"setTheme('lofi')\">lofi</a></li><li><a onclick=\"setTheme('pastel')\">pastel</a></li><li><a onclick=\"setTheme('fantasy')\">fantasy</a></li><li><a onclick=\"setTheme('wireframe')\">wireframe</a></li><li><a onclick=\"setTheme('black')\">black</a></li><li><a onclick=\"setTheme('luxury')\">luxury</a></li><li><a onclick=\"setTheme('dracula')\">dracula</a></li><li><a onclick=\"setTheme('cmyk')\">cmyk</a></li><li><a onclick=\"setTheme('autumn')\">autumn</a></li><li><a onclick=\"setTheme('business')\">business</a></li><li><a onclick=\"setTheme('acid')\">acid</a></li><li><a onclick=\"setTheme('lemonade')\">lemonade</a></li><li><a onclick=\"setTheme('night')\">night</a></li><li><a onclick=\"setTheme('coffee')\">coffee</a></li><li><a onclick=\"setTheme('winter')\">winter</a></li><li><a onclick=\"setTheme('dim')\">dim</a></li><li><a onclick=\"setTheme('nord')\">nord</a></li><li><a onclick=\"setTheme('sunset')\">sunset</a></li><li><a onclick=\"setTheme('milkshake')\">milkshake</a></li><li><a onclick=\"setTheme('mindful')\">mindful</a></li><li><a onclick=\"setTheme('pursuit')\">pursuit</a></li></ul></div></div></div><p class=\"text-lg\">Enter a rough prompt and Lyra will optimize it for you.</p><form id=\"prompt-form\" hx-post=\"/prompt\" hx-target=\"#response-container\" hx-swap=\"innerHTML\" class=\"mt-4\" hx-indicator=\"#prompt-indicator\"><div class=\"form-control w-full max-w-xs mb-4\"><label class=\"label\"><span class=\"label-text\">Select a Model</span></label> <select name=\"model\" class=\"select select-bordered\" hx-post=\"/update-footer\" hx-target=\"#footer-content\" hx-swap=\"innerHTML\" hx-trigger=\"change\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -98,7 +98,7 @@ func indexPage(version, defaultModel string, models []string) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(model)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 81, Col: 29}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 80, Col: 29}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -111,7 +111,7 @@ func indexPage(version, defaultModel string, models []string) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(model == defaultModel)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 81, Col: 64}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 80, Col: 64}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -124,7 +124,7 @@ func indexPage(version, defaultModel string, models []string) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(model)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 81, Col: 74}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 80, Col: 74}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -135,7 +135,7 @@ func indexPage(version, defaultModel string, models []string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</select></div><textarea name=\"prompt\" class=\"textarea textarea-bordered w-full mt-4\" rows=\"6\" placeholder=\"e.g., an email to my boss asking for a raise\"></textarea> <button type=\"submit\" class=\"btn btn-primary mt-4\">Craft Prompt</button></form><div class=\"divider mt-8\"></div><h3 class=\"text-2xl font-bold\">Response</h3><div id=\"response-container\" class=\"bg-base-200 p-4 rounded-box min-h-[150px] mt-4 whitespace-pre-wrap\"><!-- The crafted prompt will be loaded here --></div><footer class=\"footer footer-center p-4 mt-8 text-base-content\"><aside id=\"footer-content\"><!-- FIX: Use the @ symbol to render a component -->")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</select></div><textarea name=\"prompt\" class=\"textarea textarea-bordered w-full mt-4\" rows=\"6\" placeholder=\"e.g., an email to my boss asking for a raise\"></textarea> <button type=\"submit\" class=\"btn btn-primary mt-4\">Craft Prompt <span id=\"prompt-indicator\" class=\"htmx-indicator loading loading-spinner loading-sm\"></span></button></form><div class=\"divider mt-8\"></div><h3 class=\"text-2xl font-bold\">Response</h3><div id=\"response-container\" class=\"bg-base-200 p-4 rounded-box min-h-[150px] mt-4 whitespace-pre-wrap\"><!-- The crafted prompt will be loaded here --></div><footer class=\"footer footer-center p-4 mt-8 text-base-content\"><aside id=\"footer-content\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -180,7 +180,7 @@ func craftedPromptComponent(craftedPrompt, modelName string) templ.Component {
 		var templ_7745c5c3_Var9 string
 		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(craftedPrompt)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 112, Col: 20}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 113, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 		if templ_7745c5c3_Err != nil {
@@ -193,7 +193,7 @@ func craftedPromptComponent(craftedPrompt, modelName string) templ.Component {
 		var templ_7745c5c3_Var10 string
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(craftedPrompt)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 116, Col: 58}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 117, Col: 58}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
@@ -206,7 +206,7 @@ func craftedPromptComponent(craftedPrompt, modelName string) templ.Component {
 		var templ_7745c5c3_Var11 string
 		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(modelName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 117, Col: 53}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 118, Col: 53}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 		if templ_7745c5c3_Err != nil {
@@ -249,7 +249,7 @@ func finalAnswerComponent(answer string) templ.Component {
 		var templ_7745c5c3_Var13 string
 		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(answer)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 125, Col: 13}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 126, Col: 13}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 		if templ_7745c5c3_Err != nil {

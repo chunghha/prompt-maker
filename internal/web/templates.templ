@@ -2,7 +2,6 @@ package web
 
 // footerComponent is a reusable component for the footer content.
 templ footerComponent(version, modelName string) {
-	// The 'v' is now part of the template, not expected in the version variable.
 	<p>Prompt Maker v{ version } | Model: { modelName }</p>
 }
 
@@ -71,7 +70,7 @@ templ indexPage(version, defaultModel string, models []string) {
 					</div>
 				</div>
 				<p class="text-lg">Enter a rough prompt and Lyra will optimize it for you.</p>
-				<form id="prompt-form" hx-post="/prompt" hx-target="#response-container" hx-swap="innerHTML" class="mt-4">
+				<form id="prompt-form" hx-post="/prompt" hx-target="#response-container" hx-swap="innerHTML" class="mt-4" hx-indicator="#prompt-indicator">
 					<div class="form-control w-full max-w-xs mb-4">
 						<label class="label">
 							<span class="label-text">Select a Model</span>
@@ -83,7 +82,10 @@ templ indexPage(version, defaultModel string, models []string) {
 						</select>
 					</div>
 					<textarea name="prompt" class="textarea textarea-bordered w-full mt-4" rows="6" placeholder="e.g., an email to my boss asking for a raise"></textarea>
-					<button type="submit" class="btn btn-primary mt-4">Craft Prompt</button>
+					<button type="submit" class="btn btn-primary mt-4">
+						Craft Prompt
+						<span id="prompt-indicator" class="htmx-indicator loading loading-spinner loading-sm"></span>
+					</button>
 				</form>
 				<div class="divider mt-8"></div>
 				<h3 class="text-2xl font-bold">Response</h3>
@@ -92,7 +94,6 @@ templ indexPage(version, defaultModel string, models []string) {
 				</div>
 				<footer class="footer footer-center p-4 mt-8 text-base-content">
 					<aside id="footer-content">
-						<!-- FIX: Use the @ symbol to render a component -->
 						@footerComponent(version, defaultModel)
 					</aside>
 				</footer>

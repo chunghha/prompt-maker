@@ -147,3 +147,19 @@ func TestHandleUpdateFooter(t *testing.T) {
 	expectedFragment := fmt.Sprintf("<p>Prompt Maker v%s | Model: %s</p>", testVersion, selectedModel)
 	require.Contains(t, w.Body.String(), expectedFragment)
 }
+
+func TestHandleIndex_WithLoadingIndicator(t *testing.T) {
+	mockGen := &mockPromptGenerator{}
+	server, err := NewServer(Config{Generator: mockGen, Version: "test"})
+	require.NoError(t, err)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+	server.e.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	// 1. Assert that the form points to an indicator.
+	require.Contains(t, w.Body.String(), `hx-indicator="#prompt-indicator"`)
+	// 2. Assert that the indicator element exists. This will fail.
+	require.Contains(t, w.Body.String(), `id="prompt-indicator"`)
+}
