@@ -1,0 +1,27 @@
+{
+  "name": "prompt-maker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "css:build": "./node_modules/.bin/tailwindcss -i ./static/css/input.css -o ./static/css/output.css --minify",
+    "css:watch": "./node_modules/.bin/tailwindcss -i ./static/css/input.css -o ./static/css/output.css --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.12.4",
+  "devDependencies": {
+    "@fontsource/ibm-plex-mono": "^5.2.6",
+    "@fontsource/ibm-plex-sans": "^5.2.6",
+    "@fontsource/lora": "^5.2.6",
+    "@tailwindcss/cli": "^4.1.10",
+    "@tailwindcss/typography": "^0.5.16",
+    "daisyui": "^5.0.43",
+    "tailwindcss": "^4.1.10",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "dependencies": {
+    "htmx.org": "^2.0.5"
+  }
+}

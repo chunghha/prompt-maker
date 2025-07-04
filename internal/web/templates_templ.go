@@ -8,7 +8,6 @@ package web
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// indexPage now accepts the version string to display in the footer.
 func indexPage(version string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -30,20 +29,20 @@ func indexPage(version string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Prompt Maker</title><script src=\"https://unpkg.com/htmx.org@1.9.10\" integrity=\"sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC\" crossorigin=\"anonymous\"></script><style>\n\t\t\t\tbody { font-family: sans-serif; max-width: 800px; margin: auto; padding: 1em; background-color: #f4f4f9; color: #333; }\n\t\t\t\th1, h3 { color: #353579; }\n\t\t\t\ttextarea { width: 100%; border-radius: 5px; border: 1px solid #ccc; padding: 0.5em; }\n\t\t\t\tbutton { background-color: #353579; color: white; padding: 0.7em 1.5em; border: none; border-radius: 5px; cursor: pointer; }\n\t\t\t\tbutton:hover { background-color: #4a4a9a; }\n\t\t\t\t#response-container, .crafted-prompt { margin-top: 1em; padding: 1em; background-color: white; border: 1px solid #ddd; border-radius: 5px; min-height: 50px; white-space: pre-wrap; }\n\t\t\t\thr { border: 0; height: 1px; background: #ddd; }\n\t\t\t\tfooter { margin-top: 2em; text-align: center; font-size: 0.8em; color: #777; }\n\t\t\t</style></head><body><h1>Prompt Maker</h1><p>Enter a rough prompt and Lyra will optimize it for you.</p><form id=\"prompt-form\" hx-post=\"/prompt\" hx-target=\"#response-container\" hx-swap=\"innerHTML\"><textarea name=\"prompt\" rows=\"5\" placeholder=\"e.g., an email to my boss asking for a raise\"></textarea><br><br><button type=\"submit\">Craft Prompt</button></form><hr><h3>Response</h3><div id=\"response-container\"><!-- The crafted prompt will be loaded here --></div><footer>Prompt Maker v")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"en\" data-theme=\"light\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Prompt Maker</title><!-- Link to our locally compiled CSS --><link href=\"/static/css/output.css\" rel=\"stylesheet\" type=\"text/css\"><!-- HTMX --><script src=\"https://unpkg.com/htmx.org@1.9.10\" integrity=\"sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC\" crossorigin=\"anonymous\"></script></head><body class=\"font-sans\"><div class=\"container mx-auto max-w-4xl p-8\"><!-- Header with Theme Switcher --><div class=\"navbar bg-base-100 rounded-box mb-8\"><div class=\"flex-1\"><a class=\"btn btn-ghost text-2xl font-serif\">Prompt Maker</a></div><div class=\"flex-none\"><div id=\"theme-switcher\" class=\"dropdown dropdown-end\"><div tabindex=\"0\" role=\"button\" class=\"btn\">Theme <svg width=\"12px\" height=\"12px\" class=\"h-2 w-2 fill-current opacity-60 inline-block\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 2048 2048\"><path d=\"M1799 349l242 241-1017 1017L7 590l242-241 775 775 775-775z\"></path></svg></div><ul tabindex=\"0\" class=\"dropdown-content z-[1] p-2 shadow-2xl bg-base-300 rounded-box w-52 h-96 overflow-y-auto\"><li><a onclick=\"setTheme('light')\">light</a></li><li><a onclick=\"setTheme('dark')\">dark</a></li><li><a onclick=\"setTheme('cupcake')\">cupcake</a></li><li><a onclick=\"setTheme('bumblebee')\">bumblebee</a></li><li><a onclick=\"setTheme('emerald')\">emerald</a></li><li><a onclick=\"setTheme('corporate')\">corporate</a></li><li><a onclick=\"setTheme('synthwave')\">synthwave</a></li><li><a onclick=\"setTheme('retro')\">retro</a></li><li><a onclick=\"setTheme('cyberpunk')\">cyberpunk</a></li><li><a onclick=\"setTheme('valentine')\">valentine</a></li><li><a onclick=\"setTheme('halloween')\">halloween</a></li><li><a onclick=\"setTheme('garden')\">garden</a></li><li><a onclick=\"setTheme('forest')\">forest</a></li><li><a onclick=\"setTheme('aqua')\">aqua</a></li><li><a onclick=\"setTheme('lofi')\">lofi</a></li><li><a onclick=\"setTheme('pastel')\">pastel</a></li><li><a onclick=\"setTheme('fantasy')\">fantasy</a></li><li><a onclick=\"setTheme('wireframe')\">wireframe</a></li><li><a onclick=\"setTheme('black')\">black</a></li><li><a onclick=\"setTheme('luxury')\">luxury</a></li><li><a onclick=\"setTheme('dracula')\">dracula</a></li><li><a onclick=\"setTheme('cmyk')\">cmyk</a></li><li><a onclick=\"setTheme('autumn')\">autumn</a></li><li><a onclick=\"setTheme('business')\">business</a></li><li><a onclick=\"setTheme('acid')\">acid</a></li><li><a onclick=\"setTheme('lemonade')\">lemonade</a></li><li><a onclick=\"setTheme('night')\">night</a></li><li><a onclick=\"setTheme('coffee')\">coffee</a></li><li><a onclick=\"setTheme('winter')\">winter</a></li><li><a onclick=\"setTheme('dim')\">dim</a></li><li><a onclick=\"setTheme('nord')\">nord</a></li><li><a onclick=\"setTheme('sunset')\">sunset</a></li><li><a onclick=\"setTheme('milkshake')\">milkshake</a></li><li><a onclick=\"setTheme('mindful')\">mindful</a></li><li><a onclick=\"setTheme('pursuit')\">pursuit</a></li></ul></div></div></div><p class=\"text-lg\">Enter a rough prompt and Lyra will optimize it for you.</p><form id=\"prompt-form\" hx-post=\"/prompt\" hx-target=\"#response-container\" hx-swap=\"innerHTML\" class=\"mt-4\"><textarea name=\"prompt\" class=\"textarea textarea-bordered w-full\" rows=\"6\" placeholder=\"e.g., an email to my boss asking for a raise\"></textarea> <button type=\"submit\" class=\"btn btn-primary mt-4\">Craft Prompt</button></form><div class=\"divider mt-8\"></div><h3 class=\"text-2xl font-bold\">Response</h3><div id=\"response-container\" class=\"bg-base-200 p-4 rounded-box min-h-[150px] mt-4 whitespace-pre-wrap\"><!-- The crafted prompt will be loaded here --></div><footer class=\"footer footer-center p-4 mt-8 text-base-content\"><aside><p>Prompt Maker v")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(version)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 38, Col: 27}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 80, Col: 32}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</footer></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</p></aside></footer></div><script>\n\t\t\t\tfunction setTheme(theme) {\n\t\t\t\t\tdocument.documentElement.setAttribute('data-theme', theme);\n\t\t\t\t}\n\t\t\t</script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -51,8 +50,6 @@ func indexPage(version string) templ.Component {
 	})
 }
 
-// craftedPromptComponent is a new partial template for the response.
-// It displays the crafted prompt and provides a button to resubmit it.
 func craftedPromptComponent(craftedPrompt string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -74,33 +71,75 @@ func craftedPromptComponent(craftedPrompt string) templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"crafted-prompt\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"prose bg-base-100 p-4 rounded-box max-w-none\"><p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(craftedPrompt)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 48, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 95, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div><br><form hx-post=\"/execute\" hx-target=\"#response-container\" hx-swap=\"innerHTML\"><input type=\"hidden\" name=\"prompt\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</p></div><br><form hx-post=\"/execute\" hx-target=\"#response-container\" hx-swap=\"innerHTML\"><input type=\"hidden\" name=\"prompt\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(craftedPrompt)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 52, Col: 58}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 99, Col: 58}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\"> <button type=\"submit\">Resubmit to Get Final Answer</button></form>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\"> <button type=\"submit\" class=\"btn btn-secondary\">Resubmit to Get Final Answer</button></form>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func finalAnswerComponent(answer string) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var6 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var6 == nil {
+			templ_7745c5c3_Var6 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"prose bg-base-100 p-4 rounded-box max-w-none\"><p>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var7 string
+		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(answer)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 106, Col: 13}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</p></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

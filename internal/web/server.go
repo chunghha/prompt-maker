@@ -27,6 +27,9 @@ func NewServer(cfg Config) (*Server, error) {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
+	// Serve static files from the "static" directory
+	e.Static("/static", "static")
+
 	s := &Server{
 		e:         e,
 		generator: cfg.Generator,
@@ -40,6 +43,7 @@ func NewServer(cfg Config) (*Server, error) {
 func (s *Server) registerRoutes() {
 	s.e.GET("/", s.handleIndex)
 	s.e.POST("/prompt", s.handlePrompt)
+	s.e.POST("/execute", s.handleExecute)
 }
 
 func (s *Server) Start(addr string) error {
@@ -64,6 +68,23 @@ func (s *Server) handlePrompt(c echo.Context) error {
 	}
 
 	return render(c, craftedPromptComponent(craftedPrompt))
+}
+
+// handleExecute takes the crafted prompt and returns the final answer.
+func (s *Server) handleExecute(c echo.Context) error {
+	craftedPrompt := c.FormValue("prompt")
+	if craftedPrompt == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Prompt cannot be empty")
+	}
+
+	// Use the new Execute method on our generator interface.
+	finalAnswer, err := s.generator.Execute(c.Request().Context(), craftedPrompt)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("Failed to execute prompt: %v", err))
+	}
+
+	// Render the new component for the final answer.
+	return render(c, finalAnswerComponent(finalAnswer))
 }
 
 func render(c echo.Context, component templ.Component) error {

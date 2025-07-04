@@ -2,22 +2,52 @@ version: "3"
 
 env:
   PGM_NAME: prompt_maker
-  # Define the version here.
-  VERSION: "0.5.0"
+  VERSION: "0.5.1"
 
 tasks:
+  # --- Frontend Tasks ---
+  frontend:install:
+    desc: "Install node.js dependencies using pnpm."
+    cmds:
+      - pnpm install
+    sources:
+      - package.json
+      - pnpm-lock.yaml
+    generates:
+      - node_modules/.pnpm-stamp # A file to track if install is needed
+
+  frontend:build:
+    desc: "Build the CSS from source."
+    deps: [frontend:install]
+    cmds:
+      - pnpm run css:build
+    sources:
+      - static/css/input.css
+      - tailwind.config.js
+      - internal/web/**/*.templ
+    generates:
+      - static/css/output.css
+
+  # --- Go Tasks ---
   templ:gen:
-    desc: "Generate Go code from templ files first."
+    desc: "Generate Go code from templ files."
     cmds:
       - templ generate
 
   build:
     desc: "Build the application binary."
-    deps: [typo, format, lint, templ:gen]
+    deps: [typo, format, lint, templ:gen, frontend:build]
     cmds:
-      # Use -ldflags to inject the VERSION into the cmd.version variable at build time.
       - go mod tidy
       - go build -ldflags="-X 'prompt-maker/cmd.version=$VERSION'" -o $PGM_NAME
+
+  # --- Utility Tasks ---
+  run:web:
+    desc: "Run the application in web server mode."
+    deps: [build]
+    cmds:
+      - echo "Starting web server on http://localhost:8080"
+      - ./$PGM_NAME --web
 
   format:
     desc: "Format the Go source code."
@@ -40,13 +70,6 @@ tasks:
     desc: "Run the WSL linter."
     cmds:
       - golangci-lint run --no-config --enable wsl_v5 --fix
-
-  run:web:
-    desc: "Run the application in web server mode."
-    deps: [build]
-    cmds:
-      - echo "Starting web server on http://localhost:8080"
-      - ./$PGM_NAME --web
 
   test:
     desc: "Run all tests."

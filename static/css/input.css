@@ -1,0 +1,208 @@
+@import "@fontsource/ibm-plex-sans";
+@import "@fontsource/lora";
+@import "@fontsource/ibm-plex-mono";
+
+@import "tailwindcss";
+
+@plugin "daisyui" {
+  logs: false;
+  themes:
+    light, dark, cupcake, bumblebee, emerald, corporate, synthwave, retro,
+    cyberpunk, valentine, halloween, garden, forest, aqua, lofi, pastel,
+    fantasy, wireframe, black, luxury, dracula, cmyk, autumn, business, acid,
+    lemonade, night, coffee, winter, dim, nord, sunset, milkshake, mindful,
+    pursuit;
+}
+
+@plugin "daisyui/theme" {
+  name: "milkshake";
+  default: true;
+  prefersdark: false;
+  color-scheme: "light";
+  --color-base-100: #f0f4f2;
+  --color-base-200: oklch(97% 0.001 106.424);
+  --color-base-300: oklch(92% 0.003 48.717);
+  --color-base-content: #181818;
+  --color-primary: #ede6cb;
+  --color-primary-content: #171714;
+  --color-secondary: #5d8a9b;
+  --color-secondary-content: #eef3f5;
+  --color-accent: #202f4b;
+  --color-accent-content: #e8eaed;
+  --color-neutral: #c3d3d6;
+  --color-neutral-content: #131515;
+  --color-info: #3a5779;
+  --color-info-content: #ebeef1;
+  --color-success: #005249;
+  --color-success-content: #e5edec;
+  --color-warning: #ffcb8e;
+  --color-warning-content: #19140e;
+  --color-error: #69092d;
+  --color-error-content: #f0e6ea;
+  --radius-selector: 0rem;
+  --radius-field: 0rem;
+  --radius-box: 0rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+  name: "mindful";
+  default: true;
+  prefersdark: false;
+  color-scheme: "light";
+  --color-base-100: #f9f7ec;
+  --color-base-200: #e0ded4;
+  --color-base-300: #c7c5bc;
+  --color-base-content: #181817;
+  --color-primary: #002d72;
+  --color-primary-content: oklch(98% 0.022 95.277);
+  --color-secondary: #09cdcd;
+  --color-secondary-content: oklch(100% 0 0);
+  --color-accent: #81459e;
+  --color-accent-content: oklch(97% 0.014 254.604);
+  --color-neutral: #004bbf;
+  --color-neutral-content: oklch(98% 0.026 102.212);
+  --color-info: #573894;
+  --color-info-content: oklch(97% 0.013 236.62);
+  --color-success: oklch(60% 0.118 184.704);
+  --color-success-content: oklch(98% 0.014 180.72);
+  --color-warning: #a0e5d9;
+  --color-warning-content: #181817;
+  --color-error: oklch(59% 0.249 0.584);
+  --color-error-content: oklch(97% 0.014 343.198);
+  --radius-selector: 0.25rem;
+  --radius-field: 2rem;
+  --radius-box: 0.25rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 1;
+}
+
+@plugin "daisyui/theme" {
+  name: "pursuit";
+  default: false;
+  prefersdark: false;
+  color-scheme: "light";
+  --color-base-100: #f6f2e1;
+  --color-base-200: #ddd9ca;
+  --color-base-300: #c4c1b4;
+  --color-base-content: #181816;
+  --color-primary: #e94e6d;
+  --color-primary-content: #fcedf0;
+  --color-secondary: #327a88;
+  --color-secondary-content: #e6e6e6;
+  --color-accent: #0f084b;
+  --color-accent-content: #e7e6ed;
+  --color-neutral: #90c693;
+  --color-neutral-content: #17180f;
+  --color-info: #082c2c;
+  --color-info-content: #e6e9e9;
+  --color-success: #15706c;
+  --color-success-content: #e7f0f0;
+  --color-warning: #ede2e0;
+  --color-warning-content: #171616;
+  --color-error: #906c93;
+  --color-error-content: #f3f0f4;
+  --radius-selector: 0rem;
+  --radius-field: 0rem;
+  --radius-box: 0rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 2px;
+  --depth: 1;
+  --noise: 1;
+}
+
+/* Add your global component styles here */
+@theme {
+  --font-sans: "IBM Plex Sans", "sans-serif";
+  --font-serif: "Lora", "serif";
+  --font-mono: "IBM Plex Mono", "monospace";
+}
+
+/* Highlighted row for keyboard navigation */
+tr.highlighted-row {
+  background-color: var(--color-sky-100) !important;
+  color: var(--color-sky-900) !important;
+}
+
+/* Dark theme override */
+html[data-theme="dark"] tr.highlighted-row,
+html[data-theme="synthwave"] tr.highlighted-row,
+html[data-theme="halloween"] tr.highlighted-row,
+html[data-theme="forecast"] tr.highlighted-row,
+html[data-theme="aqua"] tr.highlighted-row,
+html[data-theme="black"] tr.highlighted-row,
+html[data-theme="luxury"] tr.highlighted-row,
+html[data-theme="dracula"] tr.highlighted-row,
+html[data-theme="business"] tr.highlighted-row,
+html[data-theme="night"] tr.highlighted-row,
+html[data-theme="coffee"] tr.highlighted-row,
+html[data-theme="dim"] tr.highlighted-row,
+html[data-theme="sunset"] tr.highlighted-row,
+html[data-theme="abyss"] tr.highlighted-row,
+.dark tr.highlighted-row {
+  background-color: var(--color-sky-900) !important;
+  color: var(--color-sky-100) !important;
+}
+
+/* --- Responsive Table Logic --- */
+/* On screens smaller than the 'lg' breakpoint (1024px) */
+@media (max-width: 1023px) {
+  /*
+    Apply these styles only to tables with the .responsive-table class.
+    This keeps the styles scoped and prevents them from affecting other tables.
+  */
+
+  /* Hide the original table header */
+  .responsive-table thead {
+    @apply hidden;
+  }
+
+  /* Make the table, body, and rows behave like blocks */
+  .responsive-table,
+  .responsive-table tbody,
+  .responsive-table tr {
+    @apply block;
+  }
+
+  /* Style each row to look like a card */
+  .responsive-table tr {
+    @apply mb-4 border border-base-200 rounded-lg;
+  }
+
+  /* Style each cell to be a full-width row with flexbox alignment */
+  .responsive-table td {
+    @apply flex justify-between items-center text-right p-2 border-b border-base-200;
+  }
+
+  /*
+    Special override for centered text. We make the pseudo-element (the label)
+    take up the full width, which pushes the actual content to the center.
+  */
+  .responsive-table .text-center::before {
+    @apply w-full;
+  }
+
+  /* The last cell in a card-row shouldn't have a bottom border */
+  .responsive-table tr td:last-child {
+    @apply border-b-0;
+  }
+
+  /* This is the magic: create a pseudo-element for the label */
+  .responsive-table td::before {
+    content: attr(data-label); /* Use the value from the data-label attribute */
+    @apply font-bold text-left mr-4;
+  }
+
+  /* Hide cells that are completely empty (like for parameter rows) */
+  .responsive-table td:empty {
+    @apply hidden;
+  }
+}
