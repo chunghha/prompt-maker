@@ -3,7 +3,7 @@ version: "3"
 env:
   PGM_NAME: prompt_maker
   # Define the version here.
-  VERSION: "0.3.2"
+  VERSION: "0.4.0"
 
 tasks:
   build:

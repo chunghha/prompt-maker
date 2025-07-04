@@ -16,6 +16,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"google.golang.org/genai"
 )
@@ -67,24 +68,25 @@ const (
 )
 
 type model struct {
-	ctx             context.Context
-	state           viewState
-	textInput       textinput.Model
-	spinner         spinner.Model
-	viewport        viewport.Model
-	genaiClient     *genai.Client
-	selectedModel   string
-	appVersion      string
-	quitting        bool
-	isPromptCrafted bool
-	craftedPrompt   string
-	busyText        string
-	errorMessage    string
-	statusMessage   string
-	viewportContent string // Store the full content of the viewport here
-	width           int
-	height          int
-	styles          Styles
+	ctx                context.Context
+	state              viewState
+	textInput          textinput.Model
+	spinner            spinner.Model
+	viewport           viewport.Model
+	glamourRenderer    *glamour.TermRenderer
+	genaiClient        *genai.Client
+	selectedModel      string
+	appVersion         string
+	quitting           bool
+	isPromptCrafted    bool
+	craftedPrompt      string
+	busyText           string
+	errorMessage       string
+	statusMessage      string
+	rawViewportContent string
+	width              int
+	height             int
+	styles             Styles
 }
 
 type Styles struct {
@@ -117,16 +119,19 @@ func New(ctx context.Context, client *genai.Client, modelName, version string) t
 
 	vp := viewport.New(initialViewportWidth, initialViewportHeight)
 
+	renderer, _ := glamour.NewTermRenderer(glamour.WithAutoStyle())
+
 	return &model{
-		ctx:           ctx,
-		state:         viewReady,
-		textInput:     ti,
-		spinner:       s,
-		viewport:      vp,
-		genaiClient:   client,
-		selectedModel: modelName,
-		appVersion:    version,
-		styles:        newStyles(),
+		ctx:             ctx,
+		state:           viewReady,
+		textInput:       ti,
+		spinner:         s,
+		viewport:        vp,
+		glamourRenderer: renderer,
+		genaiClient:     client,
+		selectedModel:   modelName,
+		appVersion:      version,
+		styles:          newStyles(),
 	}
 }
 
@@ -164,23 +169,51 @@ func (m *model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	m.width = msg.Width
 	m.height = msg.Height
 
+	// Re-create the glamour renderer with the new width.
+	renderer, err := glamour.NewTermRenderer(
+		glamour.WithAutoStyle(),
+		glamour.WithWordWrap(m.width-(horizontalPadding*2)),
+	)
+	if err == nil {
+		m.glamourRenderer = renderer
+	}
+
+	// Re-render the content with the new renderer settings.
+	if m.rawViewportContent != "" {
+		rendered, _ := m.glamourRenderer.Render(m.rawViewportContent)
+		m.viewport.SetContent(rendered)
+	}
+
 	return m, nil
 }
 
 func (m *model) handleAIResponse(msg aiResponseMsg) (tea.Model, tea.Cmd) {
+	var renderedContent string
+
+	if m.glamourRenderer != nil {
+		rendered, err := m.glamourRenderer.Render(msg.response)
+		if err == nil {
+			renderedContent = rendered
+		} else {
+			renderedContent = msg.response
+		}
+	} else {
+		renderedContent = msg.response
+	}
+
 	if !m.isPromptCrafted {
 		m.isPromptCrafted = true
 		m.craftedPrompt = msg.response
 		m.textInput.Reset()
 		m.textInput.Placeholder = placeholderResubmit
-		m.viewportContent = msg.response // Store full content for copying
-		m.viewport.SetContent(msg.response)
+		m.rawViewportContent = msg.response
+		m.viewport.SetContent(renderedContent)
 		m.state = viewReady
 	} else {
 		m.isPromptCrafted = false
 		m.craftedPrompt = ""
-		m.viewportContent = msg.response // Store full content for copying
-		m.viewport.SetContent(msg.response)
+		m.rawViewportContent = msg.response
+		m.viewport.SetContent(renderedContent)
 		m.textInput.Reset()
 		m.textInput.Placeholder = placeholderNewPrompt
 		m.state = viewResult
@@ -194,17 +227,16 @@ func (m *model) handleAIResponse(msg aiResponseMsg) (tea.Model, tea.Cmd) {
 func (m *model) handleError(msg errMsg) (tea.Model, tea.Cmd) {
 	m.state = viewError
 	m.errorMessage = msg.err.Error()
-	m.viewportContent = errorText + m.errorMessage // Store full content for copying
-	m.viewport.SetContent(m.viewportContent)
+	m.rawViewportContent = errorText + m.errorMessage
+	m.viewport.SetContent(m.rawViewportContent)
 
 	return m, nil
 }
 
 //nolint:gocyclo // This function's complexity is managed by the state machine logic.
 func (m *model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	// Copy the full viewportContent, not the rendered view.
 	if (m.state == viewResult || (m.isPromptCrafted && m.state == viewReady)) && msg.String() == "c" {
-		return m, copyToClipboardCmd(m.viewportContent)
+		return m, copyToClipboardCmd(m.rawViewportContent)
 	}
 
 	if m.isPromptCrafted && m.state == viewReady && msg.String() == "r" {
@@ -228,7 +260,7 @@ func (m *model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.craftedPrompt = ""
 			m.textInput.Reset()
 			m.textInput.Placeholder = placeholderRoughPrompt
-			m.viewportContent = ""
+			m.rawViewportContent = ""
 			m.viewport.SetContent("")
 
 			return m, nil
@@ -294,7 +326,10 @@ func (m *model) headerView() string {
 	left := m.styles.appName.Render(appName) + " " + m.styles.appVersion.Render("("+m.appVersion+")")
 	right := m.styles.modelName.Render("Model: " + m.selectedModel)
 
-	spaceWidth := max(0, m.width-lipgloss.Width(left)-lipgloss.Width(right)-(headerPadding*2))
+	spaceWidth := m.width - lipgloss.Width(left) - lipgloss.Width(right) - (headerPadding * 2)
+	if spaceWidth < 0 {
+		spaceWidth = 0
+	}
 
 	space := lipgloss.NewStyle().Width(spaceWidth).Render("")
 
