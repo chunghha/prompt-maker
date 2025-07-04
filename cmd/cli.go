@@ -48,6 +48,7 @@ func NewRootCmd() *cobra.Command {
 	return cmd
 }
 
+// runWeb configures and starts the web server.
 func (a *app) runWeb() error {
 	cfg, err := config.Load()
 	if err != nil {
@@ -61,7 +62,10 @@ func (a *app) runWeb() error {
 		return fmt.Errorf("failed to create genai client: %w", err)
 	}
 
-	promptGenerator := web.NewGeminiPromptGenerator(client, config.DefaultModel)
+	// The generator constructor no longer takes a model name.
+	promptGenerator := web.NewGeminiPromptGenerator(client)
+
+	// The web config no longer takes a model name.
 	webCfg := web.Config{
 		Generator: promptGenerator,
 		Version:   a.version,
@@ -72,11 +76,12 @@ func (a *app) runWeb() error {
 		return fmt.Errorf("failed to create web server: %w", err)
 	}
 
-	fmt.Printf("Starting web server on http://localhost:8080 using model %s\n", config.DefaultModel)
+	fmt.Printf("Starting web server on http://localhost:8080\n")
 
 	return server.Start(":8080")
 }
 
+// runTUI contains the original logic for the terminal UI.
 func (a *app) runTUI() error {
 	cfg, err := config.Load()
 	if err != nil {

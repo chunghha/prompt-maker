@@ -1,15 +1,20 @@
 package web
 
-templ indexPage(version string) {
+// footerComponent is a reusable component for the footer content.
+templ footerComponent(version, modelName string) {
+	// The 'v' is now part of the template, not expected in the version variable.
+	<p>Prompt Maker v{ version } | Model: { modelName }</p>
+}
+
+// indexPage is the main page template.
+templ indexPage(version, defaultModel string, models []string) {
 	<!DOCTYPE html>
 	<html lang="en" data-theme="light">
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>Prompt Maker</title>
-			<!-- Link to our locally compiled CSS -->
 			<link href="/static/css/output.css" rel="stylesheet" type="text/css"/>
-			<!-- HTMX -->
 			<script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
 		</head>
 		<body class="font-sans">
@@ -67,7 +72,17 @@ templ indexPage(version string) {
 				</div>
 				<p class="text-lg">Enter a rough prompt and Lyra will optimize it for you.</p>
 				<form id="prompt-form" hx-post="/prompt" hx-target="#response-container" hx-swap="innerHTML" class="mt-4">
-					<textarea name="prompt" class="textarea textarea-bordered w-full" rows="6" placeholder="e.g., an email to my boss asking for a raise"></textarea>
+					<div class="form-control w-full max-w-xs mb-4">
+						<label class="label">
+							<span class="label-text">Select a Model</span>
+						</label>
+						<select name="model" class="select select-bordered" hx-post="/update-footer" hx-target="#footer-content" hx-swap="innerHTML" hx-trigger="change">
+							for _, model := range models {
+								<option value={ model } selected={ model == defaultModel }>{ model }</option>
+							}
+						</select>
+					</div>
+					<textarea name="prompt" class="textarea textarea-bordered w-full mt-4" rows="6" placeholder="e.g., an email to my boss asking for a raise"></textarea>
 					<button type="submit" class="btn btn-primary mt-4">Craft Prompt</button>
 				</form>
 				<div class="divider mt-8"></div>
@@ -76,8 +91,9 @@ templ indexPage(version string) {
 					<!-- The crafted prompt will be loaded here -->
 				</div>
 				<footer class="footer footer-center p-4 mt-8 text-base-content">
-					<aside>
-						<p>Prompt Maker v{ version }</p>
+					<aside id="footer-content">
+						<!-- FIX: Use the @ symbol to render a component -->
+						@footerComponent(version, defaultModel)
 					</aside>
 				</footer>
 			</div>
@@ -90,17 +106,20 @@ templ indexPage(version string) {
 	</html>
 }
 
-templ craftedPromptComponent(craftedPrompt string) {
+// craftedPromptComponent is the partial for the first AI response.
+templ craftedPromptComponent(craftedPrompt, modelName string) {
 	<div class="prose bg-base-100 p-4 rounded-box max-w-none">
 		<p>{ craftedPrompt }</p>
 	</div>
 	<br/>
 	<form hx-post="/execute" hx-target="#response-container" hx-swap="innerHTML">
 		<input type="hidden" name="prompt" value={ craftedPrompt }/>
+		<input type="hidden" name="model" value={ modelName }/>
 		<button type="submit" class="btn btn-secondary">Resubmit to Get Final Answer</button>
 	</form>
 }
 
+// finalAnswerComponent is the partial for the final AI response.
 templ finalAnswerComponent(answer string) {
 	<div class="prose bg-base-100 p-4 rounded-box max-w-none">
 		<p>{ answer }</p>
