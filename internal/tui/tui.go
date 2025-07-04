@@ -4,11 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
 
 	"prompt-maker/internal/config"
 	"prompt-maker/internal/gemini"
 	"prompt-maker/internal/prompt"
 
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -20,31 +23,35 @@ import (
 // --- Constants ---
 
 const (
-	appName                  = "Prompt Maker"
-	modelTemperature         = 0.1
-	textInputCharLimit       = 2000
-	horizontalPadding        = 2
-	initialViewportWidth     = 100
-	initialViewportHeight    = 20
-	placeholderRoughPrompt   = "Enter your rough prompt here..."
-	placeholderCraftedPrompt = "Review the crafted prompt, or press Enter to submit."
-	placeholderNewPrompt     = "Press Enter to start a new prompt."
-	helpText                 = "esc: quit"
-	thinkingText             = "Crafting prompt..."
-	initialInstructionText   = "Enter a rough prompt for Lyra to improve."
-	errorText                = "Error: "
-	goodbyeText              = "Goodbye!\n"
+	appName                   = "Prompt Maker"
+	modelTemperature          = 0.1
+	textInputCharLimit        = 2000
+	horizontalPadding         = 2
+	headerPadding             = 1
+	initialViewportWidth      = 130
+	initialViewportHeight     = 36
+	copyStatusDuration        = time.Second * 2
+	placeholderRoughPrompt    = "Enter your rough prompt here..."
+	placeholderNewPrompt      = "Press Enter to start a new prompt."
+	placeholderResubmit       = "Press 'r' to resubmit, or type a new prompt."
+	thinkingTextCrafting      = "Crafting prompt..."
+	thinkingTextGettingAnswer = "Getting a response..."
+	initialInstructionText    = "Enter a rough prompt for Lyra to improve."
+	errorText                 = "Error: "
+	goodbyeText               = "Goodbye!\n"
 )
 
 var (
-	errPromptEmpty          = errors.New("prompt cannot be empty")
-	errNoResponseFromGemini = errors.New("no response content from Gemini")
+	errPromptEmpty    = errors.New("prompt cannot be empty")
+	errClipboardWrite = errors.New("failed to write to clipboard")
 )
 
 // --- TUI Messages ---
 
 type aiResponseMsg struct{ response string }
 type errMsg struct{ err error }
+type statusMessage string
+type clearStatusMsg struct{}
 
 func (e errMsg) Error() string { return e.err.Error() }
 
@@ -65,34 +72,40 @@ type model struct {
 	textInput       textinput.Model
 	spinner         spinner.Model
 	viewport        viewport.Model
-	geminiSession   gemini.ChatSession
-	appVersion      string
+	genaiClient     *genai.Client
 	selectedModel   string
+	appVersion      string
 	quitting        bool
 	isPromptCrafted bool
+	craftedPrompt   string
+	busyText        string
 	errorMessage    string
+	statusMessage   string
+	viewportContent string // Store the full content of the viewport here
 	width           int
 	height          int
 	styles          Styles
 }
 
 type Styles struct {
-	header, appName, appVersion, modelName, mainContent, input, statusBar lipgloss.Style
+	header, appName, appVersion, modelName, mainContent, input, statusBar, statusText, resubmitHelp lipgloss.Style
 }
 
 func newStyles() Styles {
 	return Styles{
-		header:      lipgloss.NewStyle().Padding(0, 1),
-		appName:     lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("35")),
-		appVersion:  lipgloss.NewStyle().Foreground(lipgloss.Color("39")),
-		modelName:   lipgloss.NewStyle().Foreground(lipgloss.Color("208")),
-		mainContent: lipgloss.NewStyle().Padding(0, horizontalPadding),
-		input:       lipgloss.NewStyle().Padding(0, horizontalPadding),
-		statusBar:   lipgloss.NewStyle().Padding(0, horizontalPadding),
+		header:       lipgloss.NewStyle().Padding(0, headerPadding),
+		appName:      lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("35")),
+		appVersion:   lipgloss.NewStyle().Foreground(lipgloss.Color("39")),
+		modelName:    lipgloss.NewStyle().Foreground(lipgloss.Color("208")),
+		mainContent:  lipgloss.NewStyle().Padding(0, horizontalPadding),
+		input:        lipgloss.NewStyle().Padding(1, horizontalPadding),
+		statusBar:    lipgloss.NewStyle().Padding(0, horizontalPadding),
+		statusText:   lipgloss.NewStyle().Foreground(lipgloss.Color("241")),
+		resubmitHelp: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("35")),
 	}
 }
 
-func New(ctx context.Context, session gemini.ChatSession, modelName, version string) tea.Model {
+func New(ctx context.Context, client *genai.Client, modelName, version string) tea.Model {
 	ti := textinput.New()
 	ti.Placeholder = placeholderRoughPrompt
 	ti.Focus()
@@ -110,9 +123,9 @@ func New(ctx context.Context, session gemini.ChatSession, modelName, version str
 		textInput:     ti,
 		spinner:       s,
 		viewport:      vp,
-		geminiSession: session,
-		appVersion:    version,
+		genaiClient:   client,
 		selectedModel: modelName,
+		appVersion:    version,
 		styles:        newStyles(),
 	}
 }
@@ -131,6 +144,15 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleAIResponse(msg)
 	case errMsg:
 		return m.handleError(msg)
+	case statusMessage:
+		m.statusMessage = string(msg)
+
+		return m, tea.Tick(copyStatusDuration, func(_ time.Time) tea.Msg {
+			return clearStatusMsg{}
+		})
+	case clearStatusMsg:
+		m.statusMessage = ""
+		return m, nil
 	case tea.KeyMsg:
 		return m.handleKeyMsg(msg)
 	}
@@ -141,12 +163,6 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	m.width = msg.Width
 	m.height = msg.Height
-	headerHeight := lipgloss.Height(m.headerView())
-	inputHeight := lipgloss.Height(m.inputView())
-	statusHeight := lipgloss.Height(m.statusBarView())
-	m.viewport.Width = m.width
-	m.viewport.Height = m.height - headerHeight - inputHeight - statusHeight
-	m.textInput.Width = m.width - (horizontalPadding * 2)
 
 	return m, nil
 }
@@ -154,12 +170,16 @@ func (m *model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 func (m *model) handleAIResponse(msg aiResponseMsg) (tea.Model, tea.Cmd) {
 	if !m.isPromptCrafted {
 		m.isPromptCrafted = true
-		m.textInput.SetValue(msg.response)
-		m.textInput.Placeholder = placeholderCraftedPrompt
+		m.craftedPrompt = msg.response
+		m.textInput.Reset()
+		m.textInput.Placeholder = placeholderResubmit
+		m.viewportContent = msg.response // Store full content for copying
 		m.viewport.SetContent(msg.response)
 		m.state = viewReady
 	} else {
 		m.isPromptCrafted = false
+		m.craftedPrompt = ""
+		m.viewportContent = msg.response // Store full content for copying
 		m.viewport.SetContent(msg.response)
 		m.textInput.Reset()
 		m.textInput.Placeholder = placeholderNewPrompt
@@ -174,29 +194,46 @@ func (m *model) handleAIResponse(msg aiResponseMsg) (tea.Model, tea.Cmd) {
 func (m *model) handleError(msg errMsg) (tea.Model, tea.Cmd) {
 	m.state = viewError
 	m.errorMessage = msg.err.Error()
-	m.viewport.SetContent(errorText + m.errorMessage)
+	m.viewportContent = errorText + m.errorMessage // Store full content for copying
+	m.viewport.SetContent(m.viewportContent)
 
 	return m, nil
 }
 
+//nolint:gocyclo // This function's complexity is managed by the state machine logic.
 func (m *model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Copy the full viewportContent, not the rendered view.
+	if (m.state == viewResult || (m.isPromptCrafted && m.state == viewReady)) && msg.String() == "c" {
+		return m, copyToClipboardCmd(m.viewportContent)
+	}
+
+	if m.isPromptCrafted && m.state == viewReady && msg.String() == "r" {
+		m.state = viewBusy
+		m.busyText = thinkingTextGettingAnswer
+
+		return m, tea.Batch(m.spinner.Tick, sendPromptCmd(m, m.craftedPrompt, false))
+	}
+
 	if msg.Type == tea.KeyEnter {
 		switch m.state {
 		case viewReady:
 			m.state = viewBusy
+			m.busyText = thinkingTextCrafting
 			userInput := m.textInput.Value()
 
 			return m, tea.Batch(m.spinner.Tick, sendPromptCmd(m, userInput, !m.isPromptCrafted))
 		case viewResult, viewError:
 			m.state = viewReady
 			m.isPromptCrafted = false
+			m.craftedPrompt = ""
 			m.textInput.Reset()
 			m.textInput.Placeholder = placeholderRoughPrompt
+			m.viewportContent = ""
 			m.viewport.SetContent("")
 
 			return m, nil
 		case viewBusy:
-			// Do nothing while busy.
+			// Do nothing.
 		}
 	}
 
@@ -239,18 +276,27 @@ func (m *model) View() string {
 		return "Initializing..."
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Left,
-		m.headerView(),
-		m.styles.mainContent.Render(m.mainContentView()),
-		m.inputView(),
-		m.statusBarView(),
-	)
+	header := m.headerView()
+	footer := m.footerView()
+	headerHeight := lipgloss.Height(header)
+	footerHeight := lipgloss.Height(footer)
+
+	m.viewport.Height = m.height - headerHeight - footerHeight
+	m.viewport.Width = m.width
+	m.textInput.Width = m.width - (horizontalPadding * 2)
+
+	mainContent := m.styles.mainContent.Render(m.mainContentView())
+
+	return lipgloss.JoinVertical(lipgloss.Left, header, mainContent, footer)
 }
 
 func (m *model) headerView() string {
 	left := m.styles.appName.Render(appName) + " " + m.styles.appVersion.Render("("+m.appVersion+")")
 	right := m.styles.modelName.Render("Model: " + m.selectedModel)
-	space := lipgloss.NewStyle().Width(m.width - lipgloss.Width(left) - lipgloss.Width(right)).Render("")
+
+	spaceWidth := max(0, m.width-lipgloss.Width(left)-lipgloss.Width(right)-(headerPadding*2))
+
+	space := lipgloss.NewStyle().Width(spaceWidth).Render("")
 
 	return m.styles.header.Render(lipgloss.JoinHorizontal(lipgloss.Bottom, left, space, right))
 }
@@ -258,7 +304,7 @@ func (m *model) headerView() string {
 func (m *model) mainContentView() string {
 	switch m.state {
 	case viewBusy:
-		return m.spinner.View() + thinkingText
+		return m.spinner.View() + m.busyText
 	case viewReady:
 		if m.viewport.View() != "" {
 			return m.viewport.View()
@@ -274,19 +320,49 @@ func (m *model) mainContentView() string {
 	return "" // Should be unreachable
 }
 
-func (m *model) inputView() string {
-	if m.state == viewResult {
-		return ""
+func (m *model) footerView() string {
+	var footerContent strings.Builder
+	footerContent.WriteString("\n")
+
+	if m.state != viewResult {
+		footerContent.WriteString(m.styles.input.Render(m.textInput.View()))
+		footerContent.WriteString("\n")
 	}
 
-	return m.styles.input.Render(m.textInput.View())
+	footerContent.WriteString(m.statusBarView())
+
+	return footerContent.String()
 }
 
 func (m *model) statusBarView() string {
-	return m.styles.statusBar.Render(helpText)
+	if m.statusMessage != "" {
+		return m.styles.statusBar.Render(m.statusMessage)
+	}
+
+	help := "esc: quit"
+
+	if m.isPromptCrafted && m.state == viewReady {
+		resubmitHelp := m.styles.resubmitHelp.Render("r: resubmit")
+		help = fmt.Sprintf("%s | c: copy | %s", resubmitHelp, help)
+	} else if m.state == viewResult {
+		help = "c: copy | " + help
+	}
+
+	return m.styles.statusBar.Render(m.styles.statusText.Render(help))
 }
 
 // --- Command Logic ---
+
+func copyToClipboardCmd(content string) tea.Cmd {
+	return func() tea.Msg {
+		err := clipboard.WriteAll(content)
+		if err != nil {
+			return errMsg{err: fmt.Errorf("%w: %w", errClipboardWrite, err)}
+		}
+
+		return statusMessage("Copied!")
+	}
+}
 
 func sendPromptCmd(m *model, userPrompt string, useLyra bool) tea.Cmd {
 	return func() tea.Msg {
@@ -294,16 +370,23 @@ func sendPromptCmd(m *model, userPrompt string, useLyra bool) tea.Cmd {
 			return errMsg{err: errPromptEmpty}
 		}
 
-		if useLyra {
-			return generateCraftedPrompt(m, userPrompt)
+		genConfig := &genai.GenerateContentConfig{Temperature: genai.Ptr(float32(modelTemperature))}
+
+		session, err := m.genaiClient.Chats.Create(m.ctx, m.selectedModel, genConfig, nil)
+		if err != nil {
+			return errMsg{err: err}
 		}
 
-		return getFinalAnswer(m, userPrompt)
+		if useLyra {
+			return generateCraftedPrompt(m, session, userPrompt)
+		}
+
+		return getFinalAnswer(m, session, userPrompt)
 	}
 }
 
-func generateCraftedPrompt(m *model, userPrompt string) tea.Msg {
-	response, err := prompt.Generate(m.ctx, m.geminiSession, userPrompt)
+func generateCraftedPrompt(m *model, session gemini.ChatSession, userPrompt string) tea.Msg {
+	response, err := prompt.Generate(m.ctx, session, userPrompt)
 	if err != nil {
 		return errMsg{err: err}
 	}
@@ -311,17 +394,13 @@ func generateCraftedPrompt(m *model, userPrompt string) tea.Msg {
 	return aiResponseMsg{response: response}
 }
 
-func getFinalAnswer(m *model, userPrompt string) tea.Msg {
-	resp, err := m.geminiSession.SendMessage(m.ctx, genai.Part{Text: userPrompt})
+func getFinalAnswer(m *model, session gemini.ChatSession, userPrompt string) tea.Msg {
+	response, err := prompt.Execute(m.ctx, session, userPrompt)
 	if err != nil {
 		return errMsg{err: err}
 	}
 
-	if len(resp.Candidates) == 0 || resp.Candidates[0].Content == nil || len(resp.Candidates[0].Content.Parts) == 0 {
-		return errMsg{err: errNoResponseFromGemini}
-	}
-
-	return aiResponseMsg{response: resp.Text()}
+	return aiResponseMsg{response: response}
 }
 
 // --- TUI Starter ---
@@ -334,14 +413,7 @@ func Start(cfg *config.Config, modelName, version string) error {
 		return fmt.Errorf("failed to create generative AI client: %w", err)
 	}
 
-	genConfig := &genai.GenerateContentConfig{Temperature: genai.Ptr(float32(modelTemperature))}
-
-	chatSession, err := client.Chats.Create(ctx, modelName, genConfig, nil)
-	if err != nil {
-		return fmt.Errorf("failed to create chat session: %w", err)
-	}
-
-	p := tea.NewProgram(New(ctx, chatSession, modelName, version), tea.WithAltScreen(), tea.WithMouseCellMotion())
+	p := tea.NewProgram(New(ctx, client, modelName, version), tea.WithAltScreen(), tea.WithMouseCellMotion())
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("error running TUI program: %w", err)
 	}

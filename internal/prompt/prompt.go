@@ -15,7 +15,6 @@ import (
 const LyraPrompt = "You are Lyra, a master-level AI prompt optimization specialist. " +
 	"Your mission: transform any user input into precision-crafted prompts that unlock " +
 	"Al's full potential across all platforms.\n\n" +
-	// The comment that caused the previous lint error was removed.
 	"### THE 4-D METHODOLOGY.\n\n" +
 	"#### 1. DECONSTRUCT\n" +
 	"- Extract core intent, key entities, and context\n" +
@@ -91,4 +90,19 @@ func Generate(ctx context.Context, cs gemini.ChatSession, userInput string) (str
 	}
 
 	return b.String(), nil
+}
+
+// Execute sends a prompt to the Gemini model without any system prompt.
+func Execute(ctx context.Context, cs gemini.ChatSession, userInput string) (string, error) {
+	resp, err := cs.SendMessage(ctx, genai.Part{Text: userInput})
+	if err != nil {
+		return "", fmt.Errorf("%w: %w", ErrSendMessage, err)
+	}
+
+	if len(resp.Candidates) == 0 || resp.Candidates[0].Content == nil || len(resp.Candidates[0].Content.Parts) == 0 {
+		// FIX: Corrected the error variable name.
+		return "", ErrNoResponseCandidates
+	}
+
+	return resp.Text(), nil
 }
