@@ -2,7 +2,7 @@ version: "3"
 
 env:
   PGM_NAME: prompt_maker
-  VERSION: "0.5.2"
+  VERSION: "0.5.4"
 
 tasks:
   # --- Frontend Tasks ---
@@ -16,9 +16,20 @@ tasks:
     generates:
       - node_modules/.pnpm-stamp # A file to track if install is needed
 
+  copy:fonts:
+    desc: "Copies font files from node_modules to the static directory."
+    deps: [frontend:install]
+    cmds:
+      - mkdir -p static/css/files
+      - cp -r node_modules/@fontsource/ibm-plex-sans/files/* static/css/files/
+      - cp -r node_modules/@fontsource/lora/files/* static/css/files/
+      - cp -r node_modules/@fontsource/ibm-plex-mono/files/* static/css/files/
+    generates:
+      - static/css/files/.gitkeep # A placeholder to track if the directory is populated
+
   frontend:build:
     desc: "Build the CSS from source."
-    deps: [frontend:install]
+    deps: [copy:fonts] # This now depends on the fonts being copied first.
     cmds:
       - pnpm run css:build
     sources:

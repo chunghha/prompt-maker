@@ -70,8 +70,8 @@ func TestHandlePrompt(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, w.Code)
 	require.Contains(t, w.Body.String(), expectedResponse)
-	// Remove the self-closing slash from the assertion to match HTML5 output.
 	require.Contains(t, w.Body.String(), `<input type="hidden" name="model" value="gemini-2.5-flash">`)
+	require.Contains(t, w.Body.String(), `id="resubmit-indicator"`)
 }
 
 func TestHandleIndex_WithDaisyUI(t *testing.T) {
