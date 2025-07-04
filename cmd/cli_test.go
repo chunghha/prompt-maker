@@ -49,7 +49,7 @@ func TestApp_Run(t *testing.T) {
 			selectModel: func() (string, error) {
 				return "test-model", nil
 			},
-			// FIX: Update the mock function signature to combine string parameters.
+			// Update the mock function signature to combine string parameters.
 			startTUI: func(cfg *config.Config, modelName, version string) error {
 				assert.NotNil(t, cfg)
 				assert.Equal(t, "test-model", modelName)

@@ -15,7 +15,7 @@ var version = "dev" // Default value for local `go run`
 // selectModelFn and startTUIFn define function types for our dependencies.
 type selectModelFn func() (string, error)
 
-// FIX: The TUI now needs the version string.
+// The TUI now needs the version string.
 type startTUIFn func(*config.Config, string, string) error
 
 // app holds the dependencies and logic of the application.
@@ -59,7 +59,7 @@ func (a *app) run() error {
 
 	fmt.Printf("Using model: %s\n", selectedModel)
 
-	// FIX: Pass the version to the TUI starter.
+	// Pass the version to the TUI starter.
 	if err := a.startTUI(cfg, selectedModel, a.version); err != nil {
 		return fmt.Errorf("tui error: %w", err)
 	}

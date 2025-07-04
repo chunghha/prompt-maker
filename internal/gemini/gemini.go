@@ -25,7 +25,7 @@ type ModelOption struct {
 func SelectModel() (string, error) {
 	var selectedModelName string
 
-	// FIX: Updated the model list to match the image.
+	// Updated the model list to match the image.
 	modelOptions := []ModelOption{
 		{"gemini-2.5-flash-lite-preview-06-17", "Latest fast, multi-modal preview model."},
 		{"gemini-2.5-flash", "Latest stable flash model."},

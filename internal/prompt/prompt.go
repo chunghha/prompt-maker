@@ -100,7 +100,7 @@ func Execute(ctx context.Context, cs gemini.ChatSession, userInput string) (stri
 	}
 
 	if len(resp.Candidates) == 0 || resp.Candidates[0].Content == nil || len(resp.Candidates[0].Content.Parts) == 0 {
-		// FIX: Corrected the error variable name.
+		// Corrected the error variable name.
 		return "", ErrNoResponseCandidates
 	}
 
