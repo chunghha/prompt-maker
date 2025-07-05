@@ -59,7 +59,8 @@ func (s *Server) handleIndex(c echo.Context) error {
 		modelNames[i] = opt.Name
 	}
 
-	return render(c, indexPage(s.version, config.DefaultModel, modelNames))
+	// Pass the model names, themes, and default theme to the index page template.
+	return render(c, indexPage(s.version, config.DefaultModel, DefaultTheme, modelNames, getThemes()))
 }
 
 func (s *Server) handlePrompt(c echo.Context) error {
