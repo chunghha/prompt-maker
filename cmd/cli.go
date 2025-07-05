@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"prompt-maker/internal/config"
-	"prompt-maker/internal/gemini"
 	"prompt-maker/internal/tui"
 	"prompt-maker/internal/web"
 
@@ -14,20 +13,18 @@ import (
 
 var version = "dev"
 
-type selectModelFn func() (string, error)
-type startTUIFn func(*config.Config, string, string) error
+// The function signature for startTUI no longer needs a model name.
+type startTUIFn func(*config.Config, string) error
 
 type app struct {
-	selectModel selectModelFn
-	startTUI    startTUIFn
-	version     string
+	startTUI startTUIFn
+	version  string
 }
 
 func NewRootCmd() *cobra.Command {
 	a := &app{
-		selectModel: gemini.SelectModel,
-		startTUI:    tui.Start,
-		version:     version,
+		startTUI: tui.Start,
+		version:  version,
 	}
 
 	var webMode bool
@@ -81,19 +78,13 @@ func (a *app) runWeb() error {
 	return server.Start(":8080")
 }
 
-// runTUI contains the original logic for the terminal UI.
+// runTUI is simplified. It no longer selects a model.
 func (a *app) runTUI() error {
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	selectedModel, err := a.selectModel()
-	if err != nil {
-		return fmt.Errorf("failed to select model: %w", err)
-	}
-
-	fmt.Printf("Using model: %s\n", selectedModel)
-
-	return a.startTUI(cfg, selectedModel, a.version)
+	// The model selection is now handled inside the TUI.
+	return a.startTUI(cfg, a.version)
 }

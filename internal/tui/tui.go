@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"prompt-maker/internal/prompt"
 
 	"github.com/atotto/clipboard"
+	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -21,8 +23,7 @@ import (
 	"google.golang.org/genai"
 )
 
-// --- Constants ---
-
+// Constants.
 const (
 	appName                   = "Prompt Maker"
 	textInputCharLimit        = 2000
@@ -39,6 +40,8 @@ const (
 	initialInstructionText    = "Enter a rough prompt for Lyra to improve."
 	errorText                 = "Error: "
 	goodbyeText               = "Goodbye!\n"
+	listHorizontalPadding     = 2
+	modelListHeight           = 14
 )
 
 var (
@@ -46,8 +49,7 @@ var (
 	errClipboardWrite = errors.New("failed to write to clipboard")
 )
 
-// --- TUI Messages ---
-
+// TUI Messages.
 type aiResponseMsg struct{ response string }
 type errMsg struct{ err error }
 type statusMessage string
@@ -57,10 +59,36 @@ func (e errMsg) Error() string { return e.err.Error() }
 
 // --- TUI Model ---
 
+// chatCreator defines an interface for creating chat sessions.
+type chatCreator interface {
+	Create(
+		ctx context.Context,
+		model string,
+		genConfig *genai.GenerateContentConfig,
+		history []*genai.Content,
+	) (gemini.ChatSession, error)
+}
+
+// genaiChatCreator holds the genai.Client to satisfy the chatCreator interface.
+type genaiChatCreator struct {
+	client *genai.Client
+}
+
+// Create satisfies the chatCreator interface for the real implementation.
+func (c *genaiChatCreator) Create(
+	ctx context.Context,
+	model string,
+	genConfig *genai.GenerateContentConfig,
+	history []*genai.Content,
+) (gemini.ChatSession, error) {
+	return c.client.Chats.Create(ctx, model, genConfig, history)
+}
+
 type viewState int
 
 const (
-	viewReady viewState = iota
+	viewSelectingModel viewState = iota // New initial state
+	viewReady
 	viewBusy
 	viewResult
 	viewError
@@ -69,11 +97,12 @@ const (
 type model struct {
 	ctx                context.Context
 	state              viewState
+	modelList          list.Model // New list component for model selection
 	textInput          textinput.Model
 	spinner            spinner.Model
 	viewport           viewport.Model
 	glamourRenderer    *glamour.TermRenderer
-	genaiClient        *genai.Client
+	chatSvc            chatCreator
 	selectedModel      string
 	appVersion         string
 	quitting           bool
@@ -106,7 +135,48 @@ func newStyles() Styles {
 	}
 }
 
-func New(ctx context.Context, client *genai.Client, modelName, version string) tea.Model {
+// itemDelegate for the model selection list.
+type itemDelegate struct{}
+
+func (itemDelegate) Height() int                             { return 1 }
+func (itemDelegate) Spacing() int                            { return 0 }
+func (itemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+
+//nolint:gocritic // The signature is defined by the list.ItemDelegate interface, which requires passing list.Model by value.
+func (itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
+	i, ok := listItem.(gemini.ModelOption)
+	if !ok {
+		return
+	}
+
+	str := fmt.Sprintf("%d. %s (%s)", index+1, i.Name, i.Desc)
+
+	fn := lipgloss.NewStyle().Padding(0, 0, 0, listHorizontalPadding).Render
+	if index == m.Index() {
+		fn = func(s ...string) string {
+			style := lipgloss.NewStyle().Padding(0, 0, 0, listHorizontalPadding).Foreground(lipgloss.Color("208"))
+			return style.Render("> " + strings.Join(s, " "))
+		}
+	}
+
+	_, _ = io.WriteString(w, fn(str))
+}
+
+func New(ctx context.Context, chatSvc chatCreator, version string) tea.Model {
+	// Create items for the list.
+	modelOptions := gemini.GetModelOptions()
+
+	items := make([]list.Item, len(modelOptions))
+	for i, opt := range modelOptions {
+		items[i] = opt
+	}
+
+	// Setup the list component.
+	l := list.New(items, itemDelegate{}, initialViewportWidth, modelListHeight)
+	l.Title = "Select a Gemini Model"
+	l.SetShowStatusBar(false)
+	l.SetFilteringEnabled(false)
+
 	ti := textinput.New()
 	ti.Placeholder = placeholderRoughPrompt
 	ti.Focus()
@@ -122,13 +192,13 @@ func New(ctx context.Context, client *genai.Client, modelName, version string) t
 
 	return &model{
 		ctx:             ctx,
-		state:           viewReady,
+		state:           viewSelectingModel, // Start at the new selection view
+		modelList:       l,
 		textInput:       ti,
 		spinner:         s,
 		viewport:        vp,
 		glamourRenderer: renderer,
-		genaiClient:     client,
-		selectedModel:   modelName,
+		chatSvc:         chatSvc,
 		appVersion:      version,
 		styles:          newStyles(),
 	}
@@ -141,9 +211,50 @@ func (*model) Init() tea.Cmd {
 // --- Update Logic ---
 
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// Handle top-level messages that apply to all states.
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		return m.handleWindowSize(msg)
+	case tea.KeyMsg:
+		// Global quit works in any state.
+		if msg.Type == tea.KeyCtrlC || msg.Type == tea.KeyEsc {
+			m.quitting = true
+			return m, tea.Quit
+		}
+	}
+
+	// Route all other messages based on the current view state.
+	switch m.state {
+	case viewSelectingModel:
+		return m.updateModelSelection(msg)
+	case viewReady, viewBusy, viewResult, viewError:
+		return m.updateMain(msg)
+	default:
+		return m, nil
+	}
+}
+
+// updateModelSelection handles logic for the new initial view.
+func (m *model) updateModelSelection(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if keyMsg, ok := msg.(tea.KeyMsg); ok && keyMsg.Type == tea.KeyEnter {
+		if i, ok := m.modelList.SelectedItem().(gemini.ModelOption); ok {
+			m.selectedModel = i.Name
+			m.state = viewReady // Transition to the main view
+		}
+
+		return m, nil
+	}
+
+	var cmd tea.Cmd
+
+	m.modelList, cmd = m.modelList.Update(msg)
+
+	return m, cmd
+}
+
+// updateMain contains the original update logic for all states after model selection.
+func (m *model) updateMain(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
 	case aiResponseMsg:
 		return m.handleAIResponse(msg)
 	case errMsg:
@@ -167,6 +278,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	m.width = msg.Width
 	m.height = msg.Height
+
+	m.modelList.SetWidth(msg.Width)
 
 	// Re-create the glamour renderer with the new width.
 	renderer, err := glamour.NewTermRenderer(
@@ -232,7 +345,6 @@ func (m *model) handleError(msg errMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-//nolint:gocyclo // This function's complexity is managed by the state machine logic.
 func (m *model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if (m.state == viewResult || (m.isPromptCrafted && m.state == viewReady)) && msg.String() == "c" {
 		return m, copyToClipboardCmd(m.rawViewportContent)
@@ -246,6 +358,7 @@ func (m *model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if msg.Type == tea.KeyEnter {
+		//nolint:exhaustive // This switch is inside the main update loop, which already filters by state.
 		switch m.state {
 		case viewReady:
 			m.state = viewBusy
@@ -266,11 +379,6 @@ func (m *model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case viewBusy:
 			// Do nothing.
 		}
-	}
-
-	if msg.Type == tea.KeyCtrlC || msg.Type == tea.KeyEsc {
-		m.quitting = true
-		return m, tea.Quit
 	}
 
 	return m.updateComponents(msg)
@@ -307,6 +415,10 @@ func (m *model) View() string {
 		return "Initializing..."
 	}
 
+	if m.state == viewSelectingModel {
+		return m.styles.mainContent.Render(m.modelList.View())
+	}
+
 	header := m.headerView()
 	footer := m.footerView()
 	headerHeight := lipgloss.Height(header)
@@ -336,6 +448,7 @@ func (m *model) headerView() string {
 }
 
 func (m *model) mainContentView() string {
+	//nolint:exhaustive // The viewSelectingModel state is handled in the parent View() function.
 	switch m.state {
 	case viewBusy:
 		return m.spinner.View() + m.busyText
@@ -351,7 +464,7 @@ func (m *model) mainContentView() string {
 		return m.viewport.View()
 	}
 
-	return "" // Should be unreachable
+	return ""
 }
 
 func (m *model) footerView() string {
@@ -406,7 +519,7 @@ func sendPromptCmd(m *model, userPrompt string, useLyra bool) tea.Cmd {
 
 		genConfig := &genai.GenerateContentConfig{Temperature: genai.Ptr(float32(config.DefaultModelTemperature))}
 
-		session, err := m.genaiClient.Chats.Create(m.ctx, m.selectedModel, genConfig, nil)
+		session, err := m.chatSvc.Create(m.ctx, m.selectedModel, genConfig, nil)
 		if err != nil {
 			return errMsg{err: err}
 		}
@@ -439,7 +552,8 @@ func getFinalAnswer(m *model, session gemini.ChatSession, userPrompt string) tea
 
 // --- TUI Starter ---
 
-func Start(cfg *config.Config, modelName, version string) error {
+// Start no longer takes a modelName.
+func Start(cfg *config.Config, version string) error {
 	ctx := context.Background()
 
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{APIKey: cfg.APIKey, Backend: genai.BackendGeminiAPI})
@@ -447,7 +561,9 @@ func Start(cfg *config.Config, modelName, version string) error {
 		return fmt.Errorf("failed to create generative AI client: %w", err)
 	}
 
-	p := tea.NewProgram(New(ctx, client, modelName, version), tea.WithAltScreen(), tea.WithMouseCellMotion())
+	creator := &genaiChatCreator{client: client}
+
+	p := tea.NewProgram(New(ctx, creator, version), tea.WithAltScreen(), tea.WithMouseCellMotion())
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("error running TUI program: %w", err)
 	}
