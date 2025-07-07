@@ -10,7 +10,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.12.4",
+  "packageManager": "pnpm@10.13.1",
   "devDependencies": {
     "@fontsource/ibm-plex-mono": "^5.2.6",
     "@fontsource/ibm-plex-sans": "^5.2.6",
