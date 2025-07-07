@@ -67,7 +67,7 @@ func footerComponent(version, modelName string) templ.Component {
 }
 
 // copyButtonComponent creates a hidden div with raw text and a button to copy it.
-func copyButtonComponent(rawText, targetID string) templ.Component {
+func copyButtonComponent(rawContent, targetID string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -119,9 +119,9 @@ func copyButtonComponent(rawText, targetID string) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var7 string
-		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(rawText)
+		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(rawContent)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 15, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 15, Col: 49}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {
@@ -136,7 +136,7 @@ func copyButtonComponent(rawText, targetID string) templ.Component {
 }
 
 // responseBlockComponent is a new, reusable component for displaying AI responses.
-func responseBlockComponent(content, rawTextID string) templ.Component {
+func responseBlockComponent(contentHTML, contentRaw, rawTextID string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -161,24 +161,45 @@ func responseBlockComponent(content, rawTextID string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = copyButtonComponent(content, rawTextID).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = copyButtonComponent(contentRaw, rawTextID).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<p>")
+		templ_7745c5c3_Err = templ.Raw(contentHTML).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var9 string
-		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(content)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 22, Col: 14}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</p></div>")
+		return nil
+	})
+}
+
+// This new component encapsulates all the page scripts.
+func pageScripts() templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var9 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var9 == nil {
+			templ_7745c5c3_Var9 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<script type=\"text/javascript\">\n\t\tfunction setTheme(theme) {\n\t\t\tdocument.documentElement.setAttribute('data-theme', theme);\n\t\t\tlocalStorage.setItem('theme', theme);\n\t\t\tconst currentCheckmark = document.querySelector('.theme-checkmark-icon');\n\t\t\tif (currentCheckmark) {\n\t\t\t\tcurrentCheckmark.remove();\n\t\t\t}\n\t\t\tconst newLink = document.getElementById(`theme-link-${theme}`);\n\t\t\tif (newLink) {\n\t\t\t\tconst checkmark = document.createElement('span');\n\t\t\t\tcheckmark.className = 'theme-checkmark-icon pr-2';\n\t\t\t\tcheckmark.innerHTML = '✓';\n\t\t\t\tnewLink.prepend(checkmark);\n\t\t\t}\n\t\t}\n\t\t(function() {\n\t\t\tconst savedTheme = localStorage.getItem('theme');\n\t\t\tif (savedTheme) {\n\t\t\t\tsetTheme(savedTheme);\n\t\t\t}\n\t\t})();\n\t\tfunction copyRawText(button) {\n\t\t\tconst targetId = button.dataset.targetId;\n\t\t\tconst textToCopy = document.getElementById(targetId).innerText;\n\t\t\tnavigator.clipboard.writeText(textToCopy).then(() => {\n\t\t\t\tconst originalText = button.innerText;\n\t\t\t\tbutton.innerText = 'Copied!';\n\t\t\t\tsetTimeout(() => {\n\t\t\t\t\tbutton.innerText = originalText;\n\t\t\t\t}, 2000);\n\t\t\t}).catch(err => {\n\t\t\t\tconsole.error('Failed to copy text: ', err);\n\t\t\t});\n\t\t}\n\t</script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -215,13 +236,13 @@ func indexPage(version, defaultModel, defaultTheme string, models []string, them
 		var templ_7745c5c3_Var11 string
 		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(defaultTheme)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 29, Col: 42}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 69, Col: 42}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Prompt Maker</title><link href=\"/static/css/output.css\" rel=\"stylesheet\" type=\"text/css\"><script src=\"https://unpkg.com/htmx.org@2.0.5\" integrity=\"sha384-t4DxZSyQK+0Uv4jzy5B0QyHyWQD2GFURUmxKMBVww9+e2EJ0ei/vCvv7+79z0fkr\" crossorigin=\"anonymous\"></script></head><body class=\"font-sans\"><div class=\"container mx-auto max-w-4xl p-8\"><!-- Header with Theme Switcher --><div class=\"navbar bg-base-100 rounded-box mb-8\"><div class=\"flex-1\"><h1 class=\"text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent pb-2 animate-gradient\">Prompt Maker</h1></div><div class=\"flex-none\"><div id=\"theme-switcher\" class=\"dropdown dropdown-end\"><div tabindex=\"0\" role=\"button\" class=\"btn\">Theme <svg width=\"12px\" height=\"12px\" class=\"h-2 w-2 fill-current opacity-60 inline-block\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 2048 2048\"><path d=\"M1799 349l242 241-1017 1017L7 590l242-241 775 775 775-775z\"></path></svg></div><ul tabindex=\"0\" class=\"dropdown-content z-[1] px-4 py-2 shadow-2xl bg-base-300 rounded-none w-40 h-96 overflow-y-auto\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Prompt Maker</title><link href=\"/static/css/output.css\" rel=\"stylesheet\" type=\"text/css\"><script src=\"https://unpkg.com/htmx.org@2.0.5\" integrity=\"sha384-t4DxZSyQK+0Uv4jzy5B0QyHyWQD2GFURUmxKMBVww9+e2EJ0ei/vCvv7+79z0fkr\" crossorigin=\"anonymous\"></script></head><body class=\"font-sans\"><div class=\"container mx-auto max-w-4xl p-8\"><!-- Header --><div class=\"navbar bg-base-100 rounded-box mb-8\"><div class=\"flex-1\"><h1 class=\"text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent pb-2 animate-gradient\">Prompt Maker</h1></div><div class=\"flex-none\"><div id=\"theme-switcher\" class=\"dropdown dropdown-end\"><div tabindex=\"0\" role=\"button\" class=\"btn\">Theme <svg width=\"12px\" height=\"12px\" class=\"h-2 w-2 fill-current opacity-60 inline-block\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 2048 2048\"><path d=\"M1799 349l242 241-1017 1017L7 590l242-241 775 775 775-775z\"></path></svg></div><ul tabindex=\"0\" class=\"dropdown-content z-[1] px-4 py-2 shadow-2xl bg-base-300 rounded-none w-40 h-96 overflow-y-auto\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -241,13 +262,13 @@ func indexPage(version, defaultModel, defaultTheme string, models []string, them
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs("theme-link-" + theme)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 53, Col: 39}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 93, Col: 39}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" onclick=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" href=\"#\" onclick=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -269,7 +290,7 @@ func indexPage(version, defaultModel, defaultTheme string, models []string, them
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(theme)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 57, Col: 18}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 97, Col: 18}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {
@@ -280,7 +301,7 @@ func indexPage(version, defaultModel, defaultTheme string, models []string, them
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</ul></div></div></div><p class=\"text-lg\">Enter a rough prompt and Lyra will optimize it for you.</p><form id=\"prompt-form\" hx-post=\"/prompt\" hx-target=\"#response-container\" hx-swap=\"innerHTML\" class=\"mt-4\" hx-indicator=\"#prompt-indicator\"><div class=\"form-control w-full max-w-xs mb-4\"><label class=\"label\"><span class=\"label-text\">Select a Model</span></label> <select name=\"model\" class=\"select select-bordered\" hx-post=\"/update-footer\" hx-target=\"#footer-content\" hx-swap=\"innerHTML\" hx-trigger=\"change\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</ul></div></div></div><!-- Form --><p class=\"text-lg\">Enter a rough prompt and Lyra will optimize it for you.</p><form id=\"prompt-form\" hx-post=\"/prompt\" hx-target=\"#response-container\" hx-swap=\"innerHTML\" class=\"mt-4\" hx-indicator=\"#prompt-indicator\"><div class=\"form-control w-full max-w-xs mb-4\"><label class=\"label\"><span class=\"label-text\">Select a Model</span></label> <select name=\"model\" class=\"select select-bordered\" hx-post=\"/update-footer\" hx-target=\"#footer-content\" hx-swap=\"innerHTML\" hx-trigger=\"change\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -292,7 +313,7 @@ func indexPage(version, defaultModel, defaultTheme string, models []string, them
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(model)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 73, Col: 29}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 112, Col: 29}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
@@ -315,7 +336,7 @@ func indexPage(version, defaultModel, defaultTheme string, models []string, them
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(model)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 73, Col: 75}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 112, Col: 75}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
@@ -326,7 +347,7 @@ func indexPage(version, defaultModel, defaultTheme string, models []string, them
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</select></div><textarea name=\"prompt\" class=\"textarea textarea-bordered w-full mt-4\" rows=\"6\" placeholder=\"e.g., an email to my boss asking for a raise\"></textarea> <button type=\"submit\" class=\"btn btn-primary mt-4\">Craft Prompt <span id=\"prompt-indicator\" class=\"htmx-indicator loading loading-spinner loading-sm\"></span></button></form><div class=\"divider mt-8\"></div><div class=\"flex justify-between items-center\"><h3 class=\"text-2xl font-serif font-semibold\">Response</h3><button class=\"btn btn-md btn-warning\" hx-post=\"/clear\" hx-target=\"#response-container\" hx-swap=\"innerHTML\">Clear</button></div><div id=\"response-container\" class=\"bg-base-200 p-4 rounded-box min-h-[150px] mt-4 whitespace-pre-wrap\"><!-- The crafted prompt will be loaded here --></div><footer class=\"footer footer-center p-4 mt-8 text-base-content\"><aside id=\"footer-content\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</select></div><textarea name=\"prompt\" class=\"textarea textarea-bordered w-full mt-4\" rows=\"6\" placeholder=\"e.g., an email to my boss asking for a raise\"></textarea> <button type=\"submit\" class=\"btn btn-primary mt-4\">Craft Prompt <span id=\"prompt-indicator\" class=\"htmx-indicator loading loading-spinner loading-sm\"></span></button></form><!-- Response --><div class=\"divider mt-8\"></div><div class=\"flex justify-between items-center\"><h3 class=\"text-2xl font-serif font-semibold\">Response</h3><button class=\"btn btn-md btn-warning\" hx-post=\"/clear\" hx-target=\"#response-container\" hx-swap=\"innerHTML\">Clear</button></div><div id=\"response-container\" class=\"bg-base-200 p-4 rounded-box min-h-[150px] mt-4 whitespace-pre-wrap\"></div><!-- Footer --><footer class=\"footer footer-center p-4 mt-8 text-base-content\"><aside id=\"footer-content\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -334,7 +355,15 @@ func indexPage(version, defaultModel, defaultTheme string, models []string, them
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "</aside></footer></div><script>\n\t\t\t\tfunction setTheme(theme) {\n\t\t\t\t\t// Set theme attribute and save to local storage\n\t\t\t\t\tdocument.documentElement.setAttribute('data-theme', theme);\n\t\t\t\t\tlocalStorage.setItem('theme', theme);\n\n\t\t\t\t\t// Find and remove the current checkmark\n\t\t\t\t\tconst currentCheckmark = document.querySelector('.theme-checkmark-icon');\n\t\t\t\t\tif (currentCheckmark) {\n\t\t\t\t\t\tcurrentCheckmark.remove();\n\t\t\t\t\t}\n\n\t\t\t\t\t// Find the newly selected link and add a checkmark to it\n\t\t\t\t\tconst newLink = document.getElementById(`theme-link-${theme}`);\n\t\t\t\t\tif (newLink) {\n\t\t\t\t\t\tconst checkmark = document.createElement('span');\n\t\t\t\t\t\tcheckmark.className = 'theme-checkmark-icon pr-2';\n\t\t\t\t\t\tcheckmark.innerHTML = '✓';\n\t\t\t\t\t\tnewLink.prepend(checkmark);\n\t\t\t\t\t}\n\t\t\t\t}\n\n\t\t\t\t// On page load, ensure the correct theme and checkmark are set from localStorage\n\t\t\t\t(function() {\n\t\t\t\t\tconst savedTheme = localStorage.getItem('theme');\n\t\t\t\t\tif (savedTheme) {\n\t\t\t\t\t\t// We call setTheme to handle both setting the attribute and placing the checkmark\n\t\t\t\t\t\tsetTheme(savedTheme);\n\t\t\t\t\t}\n\t\t\t\t})();\n\n\t\t\t\t// This function copies text from a hidden element to the clipboard.\n\t\t\t\tfunction copyRawText(button) {\n\t\t\t\t\tconst targetId = button.dataset.targetId;\n\t\t\t\t\tconst textToCopy = document.getElementById(targetId).innerText;\n\t\t\t\t\tnavigator.clipboard.writeText(textToCopy).then(() => {\n\t\t\t\t\t\tconst originalText = button.innerText;\n\t\t\t\t\t\tbutton.innerText = 'Copied!';\n\t\t\t\t\t\tsetTimeout(() => {\n\t\t\t\t\t\t\tbutton.innerText = originalText;\n\t\t\t\t\t\t}, 2000); // Revert back after 2 seconds\n\t\t\t\t\t}).catch(err => {\n\t\t\t\t\t\tconsole.error('Failed to copy text: ', err);\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t</script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "</aside></footer></div><!-- Scripts are now called from a proper templ component -->")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = pageScripts().Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -343,7 +372,7 @@ func indexPage(version, defaultModel, defaultTheme string, models []string, them
 }
 
 // craftedPromptComponent is the partial for the first AI response.
-func craftedPromptComponent(craftedPrompt, modelName string) templ.Component {
+func craftedPromptComponent(craftedPromptHTML, craftedPromptRaw, modelName string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -364,37 +393,37 @@ func craftedPromptComponent(craftedPrompt, modelName string) templ.Component {
 			templ_7745c5c3_Var17 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = responseBlockComponent(craftedPrompt, "raw-crafted-prompt").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = responseBlockComponent(craftedPromptHTML, craftedPromptRaw, "raw-crafted-prompt").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<br><form hx-post=\"/execute\" hx-target=\"#response-container\" hx-swap=\"innerHTML\" hx-indicator=\"#resubmit-indicator\"><input type=\"hidden\" name=\"prompt\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<br><form hx-post=\"/execute\" hx-target=\"#response-container\" hx-swap=\"innerHTML\" hx-indicator=\"#resubmit-indicator\"><input type=\"hidden\" name=\"prompt\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var18 string
-		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(craftedPrompt)
+		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(craftedPromptRaw)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 152, Col: 58}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 144, Col: 61}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "\"> <input type=\"hidden\" name=\"model\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\"> <input type=\"hidden\" name=\"model\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var19 string
 		templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(modelName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 153, Col: 53}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 145, Col: 53}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\"> <button type=\"submit\" class=\"btn btn-secondary\">Resubmit to Get Final Answer <span id=\"resubmit-indicator\" class=\"htmx-indicator loading loading-spinner loading-sm\"></span></button></form>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\"> <button type=\"submit\" class=\"btn btn-secondary\">Resubmit to Get Final Answer <span id=\"resubmit-indicator\" class=\"htmx-indicator loading loading-spinner loading-sm\"></span></button></form>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -403,7 +432,7 @@ func craftedPromptComponent(craftedPrompt, modelName string) templ.Component {
 }
 
 // finalAnswerComponent is refactored to use the reusable response block.
-func finalAnswerComponent(answer string) templ.Component {
+func finalAnswerComponent(answerHTML, answerRaw string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -424,7 +453,7 @@ func finalAnswerComponent(answer string) templ.Component {
 			templ_7745c5c3_Var20 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = responseBlockComponent(answer, "raw-final-answer").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = responseBlockComponent(answerHTML, answerRaw, "raw-final-answer").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -454,20 +483,20 @@ func errorComponent(errorMessage string) templ.Component {
 			templ_7745c5c3_Var21 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<div class=\"alert alert-error\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"stroke-current shrink-0 h-6 w-6\" fill=\"none\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z\"></path></svg> <span>Error: ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<div class=\"alert alert-error\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"stroke-current shrink-0 h-6 w-6\" fill=\"none\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z\"></path></svg> <span>Error: ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var22 string
 		templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(errorMessage)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 170, Col: 29}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/templates.templ`, Line: 159, Col: 29}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "</span></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "</span></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

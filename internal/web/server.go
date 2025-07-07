@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bytes"
 	"net/http"
 	"prompt-maker/internal/config"
 	"prompt-maker/internal/gemini"
@@ -8,6 +9,8 @@ import (
 	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/renderer/html"
 )
 
 // Server holds our testable interface and config values.
@@ -71,13 +74,17 @@ func (s *Server) handlePrompt(c echo.Context) error {
 		return render(c, errorComponent("Prompt and model cannot be empty."))
 	}
 
+	// Generate the crafted prompt from the user input.
 	craftedPrompt, err := s.generator.Generate(c.Request().Context(), modelName, userInput)
 	if err != nil {
 		c.Logger().Errorf("Failed to generate prompt: %v", err)
 		return render(c, errorComponent("The AI failed to generate a response. Please try again."))
 	}
 
-	return render(c, craftedPromptComponent(craftedPrompt, modelName))
+	// Convert the markdown response to HTML.
+	craftedPromptHTML := markdownToHTML(craftedPrompt)
+
+	return render(c, craftedPromptComponent(craftedPromptHTML, craftedPrompt, modelName))
 }
 
 func (s *Server) handleExecute(c echo.Context) error {
@@ -88,13 +95,17 @@ func (s *Server) handleExecute(c echo.Context) error {
 		return render(c, errorComponent("Prompt and model cannot be empty."))
 	}
 
+	// Execute the crafted prompt to get the final answer.
 	finalAnswer, err := s.generator.Execute(c.Request().Context(), modelName, craftedPrompt)
 	if err != nil {
 		c.Logger().Errorf("Failed to execute prompt: %v", err)
 		return render(c, errorComponent("The AI failed to execute the prompt. Please try again."))
 	}
 
-	return render(c, finalAnswerComponent(finalAnswer))
+	// Convert the markdown response to HTML.
+	finalAnswerHTML := markdownToHTML(finalAnswer)
+
+	return render(c, finalAnswerComponent(finalAnswerHTML, finalAnswer))
 }
 
 func (s *Server) handleUpdateFooter(c echo.Context) error {
@@ -108,6 +119,20 @@ func (s *Server) handleUpdateFooter(c echo.Context) error {
 
 func handleClear(c echo.Context) error {
 	return c.HTML(http.StatusOK, "")
+}
+
+// markdownToHTML converts a markdown string to its HTML representation.
+func markdownToHTML(md string) string {
+	var buf bytes.Buffer
+	if err := goldmark.New(
+		goldmark.WithRendererOptions(
+			html.WithUnsafe(), // Allow raw HTML in markdown
+		),
+	).Convert([]byte(md), &buf); err != nil {
+		return md // Return raw text on error
+	}
+
+	return buf.String()
 }
 
 func render(c echo.Context, component templ.Component) error {

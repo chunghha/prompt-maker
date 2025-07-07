@@ -47,16 +47,18 @@ func TestHandleIndex(t *testing.T) {
 
 func TestHandlePrompt(t *testing.T) {
 	const (
-		userInput        = "make it better"
-		expectedResponse = "This is the **crafted** prompt."
-		selectedModel    = "gemini-2.5-flash"
+		userInput     = "make it better"
+		rawResponse   = "This is the **crafted** prompt."
+		selectedModel = "gemini-2.5-flash"
+		// The goldmark library wraps the output in <p> tags by default.
+		expectedHTMLPart = "<p>This is the <strong>crafted</strong> prompt.</p>"
 	)
 
 	mockGen := &mockPromptGenerator{
 		GenerateFunc: func(_ context.Context, model, input string) (string, error) {
 			require.Equal(t, selectedModel, model)
 			require.Equal(t, userInput, input)
-			return expectedResponse, nil
+			return rawResponse, nil
 		},
 	}
 
@@ -72,9 +74,26 @@ func TestHandlePrompt(t *testing.T) {
 	server.e.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusOK, w.Code)
-	require.Contains(t, w.Body.String(), `onclick="copyRawText(this)"`)
-	require.Contains(t, w.Body.String(), `data-target-id="raw-crafted-prompt"`)
-	require.Contains(t, w.Body.String(), `<div id="raw-crafted-prompt" class="hidden">This is the **crafted** prompt.</div>`)
+	body := w.Body.String()
+
+	// 1. Check that the visible part is rendered correctly as HTML.
+	require.Contains(t, body, expectedHTMLPart, "The rendered HTML should contain the strong tag inside a p tag.")
+
+	// 2. Check that the raw markdown is correctly placed in the hidden div for the copy button.
+	require.Contains(
+		t,
+		body,
+		`<div id="raw-crafted-prompt" class="hidden">`+rawResponse+`</div>`,
+		"The hidden div should contain the raw markdown.",
+	)
+
+	// 3. Check that the raw markdown is correctly placed in the hidden input for the resubmit form.
+	require.Contains(
+		t,
+		body,
+		`<input type="hidden" name="prompt" value="`+rawResponse+`">`,
+		"The hidden input should contain the raw markdown for resubmission.",
+	)
 }
 
 func TestHandleIndex_WithDaisyUI(t *testing.T) {
@@ -94,8 +113,9 @@ func TestHandleIndex_WithDaisyUI(t *testing.T) {
 func TestHandleExecute(t *testing.T) {
 	const (
 		craftedPrompt = "This is the crafted prompt."
-		finalAnswer   = "This is the final answer from the AI."
+		finalAnswer   = "This is the **final** answer from the AI."
 		selectedModel = "gemini-2.5-flash"
+		expectedHTML  = "<p>This is the <strong>final</strong> answer from the AI.</p>"
 	)
 
 	mockGen := &mockPromptGenerator{
@@ -118,8 +138,9 @@ func TestHandleExecute(t *testing.T) {
 	server.e.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusOK, w.Code)
-	require.Contains(t, w.Body.String(), finalAnswer)
-	require.NotContains(t, w.Body.String(), `hx-post="/execute"`)
+	body := w.Body.String()
+	require.Contains(t, body, expectedHTML)
+	require.NotContains(t, body, `hx-post="/execute"`)
 }
 
 func TestHandleUpdateFooter(t *testing.T) {

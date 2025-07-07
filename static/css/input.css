@@ -206,3 +206,12 @@ html[data-theme="abyss"] tr.highlighted-row,
     @apply hidden;
   }
 }
+
+/*
+  Custom override for prose content to ensure long lines in code blocks wrap
+  instead of causing horizontal overflow.
+*/
+.prose pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
