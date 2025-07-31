@@ -20,8 +20,9 @@ var errMockAPIFailed = errors.New("mock API failed")
 
 // mockPromptGenerator is updated to match the new interface signatures.
 type mockPromptGenerator struct {
-	GenerateFunc func(ctx context.Context, modelName, userInput string) (string, error)
-	ExecuteFunc  func(ctx context.Context, modelName, userInput string) (string, error)
+	GenerateFunc      func(ctx context.Context, modelName, userInput string) (string, error)
+	ExecuteFunc       func(ctx context.Context, modelName, userInput string) (string, error)
+	GetModelNamesFunc func() []string
 }
 
 func (m *mockPromptGenerator) Generate(ctx context.Context, modelName, userInput string) (string, error) {
@@ -32,8 +33,16 @@ func (m *mockPromptGenerator) Execute(ctx context.Context, modelName, userInput 
 	return m.ExecuteFunc(ctx, modelName, userInput)
 }
 
+func (m *mockPromptGenerator) GetModelNames() []string {
+	return m.GetModelNamesFunc()
+}
+
 func TestHandleIndex(t *testing.T) {
-	mockGen := &mockPromptGenerator{}
+	mockGen := &mockPromptGenerator{
+		GetModelNamesFunc: func() []string {
+			return []string{"test-model-1", "test-model-2"}
+		},
+	}
 	server, err := NewServer(Config{Generator: mockGen, Version: "test-version"})
 	require.NoError(t, err)
 
@@ -42,7 +51,10 @@ func TestHandleIndex(t *testing.T) {
 	server.e.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusOK, w.Code)
-	require.Contains(t, w.Body.String(), `id="prompt-form"`)
+	body := w.Body.String()
+	require.Contains(t, body, `id="prompt-form"`)
+	require.Contains(t, body, "test-model-1")
+	require.Contains(t, body, "test-model-2")
 }
 
 func TestHandlePrompt(t *testing.T) {
@@ -97,7 +109,11 @@ func TestHandlePrompt(t *testing.T) {
 }
 
 func TestHandleIndex_WithDaisyUI(t *testing.T) {
-	mockGen := &mockPromptGenerator{}
+	mockGen := &mockPromptGenerator{
+		GetModelNamesFunc: func() []string {
+			return []string{"test-model-1"}
+		},
+	}
 	server, err := NewServer(Config{Generator: mockGen, Version: "test-version"})
 	require.NoError(t, err)
 
@@ -168,7 +184,11 @@ func TestHandleUpdateFooter(t *testing.T) {
 }
 
 func TestHandleIndex_WithLoadingIndicator(t *testing.T) {
-	mockGen := &mockPromptGenerator{}
+	mockGen := &mockPromptGenerator{
+		GetModelNamesFunc: func() []string {
+			return []string{"test-model-1"}
+		},
+	}
 	server, err := NewServer(Config{Generator: mockGen, Version: "test"})
 	require.NoError(t, err)
 
@@ -205,13 +225,16 @@ func TestHandlePrompt_ApiError(t *testing.T) {
 
 	server.e.ServeHTTP(w, req)
 
-	require.Equal(t, http.StatusOK, w.Code)
-	require.Contains(t, w.Body.String(), `class="alert alert-error"`)
+	require.Equal(t, http.StatusInternalServerError, w.Code)
 	require.Contains(t, w.Body.String(), userFacingErrorMessage)
 }
 
 func TestHandleIndex_WithClearButton(t *testing.T) {
-	mockGen := &mockPromptGenerator{}
+	mockGen := &mockPromptGenerator{
+		GetModelNamesFunc: func() []string {
+			return []string{"test-model-1"}
+		},
+	}
 	server, err := NewServer(Config{Generator: mockGen, Version: "test"})
 	require.NoError(t, err)
 
@@ -236,7 +259,34 @@ func TestHandleClear(t *testing.T) {
 	// This will fail because the endpoint doesn't exist.
 	server.e.ServeHTTP(w, req)
 
-	require.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, http.StatusNoContent, w.Code)
 	// Assert that the response body is empty.
 	require.Empty(t, w.Body.String())
+}
+
+func TestHandleExecute_ApiError(t *testing.T) {
+	const (
+		userFacingErrorMessage = "The AI failed to execute the prompt. Please try again."
+		selectedModel          = "gemini-2.5-flash"
+	)
+
+	mockGen := &mockPromptGenerator{
+		ExecuteFunc: func(_ context.Context, _, _ string) (string, error) {
+			return "", errMockAPIFailed
+		},
+	}
+
+	server, err := NewServer(Config{Generator: mockGen, Version: "test"})
+	require.NoError(t, err)
+
+	form := strings.NewReader("prompt=test&model=" + selectedModel)
+	req := httptest.NewRequest(http.MethodPost, "/execute", form)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+
+	w := httptest.NewRecorder()
+
+	server.e.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusInternalServerError, w.Code)
+	require.Contains(t, w.Body.String(), userFacingErrorMessage)
 }

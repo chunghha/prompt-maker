@@ -1,0 +1,4 @@
+- [x] Centralize error handling with a custom middleware.
+- [x] Optimize `markdownToHTML` by initializing Goldmark once.
+- [x] Refactor `handleIndex` to be model-agnostic.
+- [x] Improve `handleClear` to return `204 No Content`.

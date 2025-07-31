@@ -12,6 +12,7 @@ import (
 type PromptGenerator interface {
 	Generate(ctx context.Context, modelName, userInput string) (string, error)
 	Execute(ctx context.Context, modelName, userInput string) (string, error)
+	GetModelNames() []string
 }
 
 // The struct no longer needs to store the modelName.
@@ -52,4 +53,10 @@ func (g *geminiPromptGenerator) Execute(ctx context.Context, modelName, userInpu
 	}
 
 	return prompt.Execute(ctx, session, userInput)
+}
+
+func (*geminiPromptGenerator) GetModelNames() []string {
+	// This is a placeholder. In a real application, you would fetch this
+	// from a config file or an API.
+	return []string{"gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"}
 }

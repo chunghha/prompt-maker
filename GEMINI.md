@@ -111,4 +111,4 @@ Always write one test at a time, make it run, then improve structure. Always run
 Prefer functional programming style over imperative style in Rust. Use Option and Result combinators (map, and_then, unwrap_or, etc.) instead of pattern matching with if let or match when possible.
 
 # Go-specific
-While building with Go, use task build command as this repo has Taskfile. Also,
+When working with Go in this repository, use `task build` and `task test:unit` commands instead of `go build` and `go test`, since a `Taskfile.yml` is already provided.
