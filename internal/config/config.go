@@ -26,7 +26,5 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("%w (checked environment variable: %s)", ErrAPIKeyNotFound, apiKeyEnvVar)
 	}
 
-	fmt.Println("Loaded API key from environment variable")
-
 	return &Config{APIKey: apiKey}, nil
 }

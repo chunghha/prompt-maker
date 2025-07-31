@@ -106,7 +106,6 @@ type model struct {
 	selectedModel      string
 	appVersion         string
 	quitting           bool
-	isPromptCrafted    bool
 	craftedPrompt      string
 	busyText           string
 	errorMessage       string
@@ -118,21 +117,30 @@ type model struct {
 }
 
 type Styles struct {
-	header, appName, appVersion, modelName, mainContent, input, statusBar, statusText, resubmitHelp lipgloss.Style
+	header, appName, appVersion, modelName, mainContent, input, statusBar, statusText,
+	resubmitHelp, selectedListItem, listItem, spinner lipgloss.Style
 }
 
 func newStyles() Styles {
 	return Styles{
-		header:       lipgloss.NewStyle().Padding(0, headerPadding),
-		appName:      lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("35")),
-		appVersion:   lipgloss.NewStyle().Foreground(lipgloss.Color("39")),
-		modelName:    lipgloss.NewStyle().Foreground(lipgloss.Color("208")),
-		mainContent:  lipgloss.NewStyle().Padding(0, horizontalPadding),
-		input:        lipgloss.NewStyle().Padding(1, horizontalPadding),
-		statusBar:    lipgloss.NewStyle().Padding(0, horizontalPadding),
-		statusText:   lipgloss.NewStyle().Foreground(lipgloss.Color("241")),
-		resubmitHelp: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("35")),
+		header:           lipgloss.NewStyle().Padding(0, headerPadding),
+		appName:          lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("35")),
+		appVersion:       lipgloss.NewStyle().Foreground(lipgloss.Color("39")),
+		modelName:        lipgloss.NewStyle().Foreground(lipgloss.Color("208")),
+		mainContent:      lipgloss.NewStyle().Padding(0, horizontalPadding),
+		input:            lipgloss.NewStyle().Padding(1, horizontalPadding),
+		statusBar:        lipgloss.NewStyle().Padding(0, horizontalPadding),
+		statusText:       lipgloss.NewStyle().Foreground(lipgloss.Color("241")),
+		resubmitHelp:     lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("35")),
+		selectedListItem: lipgloss.NewStyle().Padding(0, 0, 0, listHorizontalPadding).Foreground(lipgloss.Color("208")),
+		listItem:         lipgloss.NewStyle().Padding(0, 0, 0, listHorizontalPadding),
+		spinner:          lipgloss.NewStyle().Foreground(lipgloss.Color("205")),
 	}
+}
+
+type modelOption interface {
+	Name() string
+	Desc() string
 }
 
 // itemDelegate for the model selection list.
@@ -144,18 +152,22 @@ func (itemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 
 //nolint:gocritic // The signature is defined by the list.ItemDelegate interface, which requires passing list.Model by value.
 func (itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	i, ok := listItem.(gemini.ModelOption)
+	i, ok := listItem.(modelOption)
 	if !ok {
 		return
 	}
 
-	str := fmt.Sprintf("%d. %s (%s)", index+1, i.Name, i.Desc)
+	str := fmt.Sprintf("%d. %s (%s)", index+1, i.Name(), i.Desc())
+	styles := newStyles() // Create a new Styles struct to access the styles.
 
-	fn := lipgloss.NewStyle().Padding(0, 0, 0, listHorizontalPadding).Render
+	var fn func(...string) string
 	if index == m.Index() {
 		fn = func(s ...string) string {
-			style := lipgloss.NewStyle().Padding(0, 0, 0, listHorizontalPadding).Foreground(lipgloss.Color("208"))
-			return style.Render("> " + strings.Join(s, " "))
+			return styles.selectedListItem.Render("> " + strings.Join(s, " "))
+		}
+	} else {
+		fn = func(s ...string) string {
+			return styles.listItem.Render(strings.Join(s, " "))
 		}
 	}
 
@@ -184,7 +196,7 @@ func New(ctx context.Context, chatSvc chatCreator, version string) tea.Model {
 
 	s := spinner.New()
 	s.Spinner = spinner.Dot
-	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	s.Style = newStyles().spinner
 
 	vp := viewport.New(initialViewportWidth, initialViewportHeight)
 
@@ -227,8 +239,14 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch m.state {
 	case viewSelectingModel:
 		return m.updateModelSelection(msg)
-	case viewReady, viewBusy, viewResult, viewError:
-		return m.updateMain(msg)
+	case viewReady:
+		return m.updateReady(msg)
+	case viewBusy:
+		return m.updateBusy(msg)
+	case viewResult:
+		return m.updateResult(msg)
+	case viewError:
+		return m.updateError(msg)
 	default:
 		return m, nil
 	}
@@ -237,8 +255,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // updateModelSelection handles logic for the new initial view.
 func (m *model) updateModelSelection(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if keyMsg, ok := msg.(tea.KeyMsg); ok && keyMsg.Type == tea.KeyEnter {
-		if i, ok := m.modelList.SelectedItem().(gemini.ModelOption); ok {
-			m.selectedModel = i.Name
+		if i, ok := m.modelList.SelectedItem().(modelOption); ok {
+			m.selectedModel = i.Name()
 			m.state = viewReady // Transition to the main view
 		}
 
@@ -252,8 +270,7 @@ func (m *model) updateModelSelection(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-// updateMain contains the original update logic for all states after model selection.
-func (m *model) updateMain(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *model) updateReady(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case aiResponseMsg:
 		return m.handleAIResponse(msg)
@@ -270,6 +287,43 @@ func (m *model) updateMain(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case tea.KeyMsg:
 		return m.handleKeyMsg(msg)
+	}
+
+	return m.updateComponents(msg)
+}
+
+func (m *model) updateBusy(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case aiResponseMsg:
+		return m.handleAIResponse(msg)
+	case errMsg:
+		return m.handleError(msg)
+	}
+
+	return m.updateComponents(msg)
+}
+
+func (m *model) updateResult(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case statusMessage:
+		m.statusMessage = string(msg)
+
+		return m, tea.Tick(copyStatusDuration, func(_ time.Time) tea.Msg {
+			return clearStatusMsg{}
+		})
+	case clearStatusMsg:
+		m.statusMessage = ""
+		return m, nil
+	case tea.KeyMsg:
+		return m.handleKeyMsg(msg)
+	}
+
+	return m.updateComponents(msg)
+}
+
+func (m *model) updateError(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if keyMsg, ok := msg.(tea.KeyMsg); ok {
+		return m.handleKeyMsg(keyMsg)
 	}
 
 	return m.updateComponents(msg)
@@ -313,8 +367,7 @@ func (m *model) handleAIResponse(msg aiResponseMsg) (tea.Model, tea.Cmd) {
 		renderedContent = msg.response
 	}
 
-	if !m.isPromptCrafted {
-		m.isPromptCrafted = true
+	if m.craftedPrompt == "" {
 		m.craftedPrompt = msg.response
 		m.textInput.Reset()
 		m.textInput.Placeholder = placeholderResubmit
@@ -322,7 +375,6 @@ func (m *model) handleAIResponse(msg aiResponseMsg) (tea.Model, tea.Cmd) {
 		m.viewport.SetContent(renderedContent)
 		m.state = viewReady
 	} else {
-		m.isPromptCrafted = false
 		m.craftedPrompt = ""
 		m.rawViewportContent = msg.response
 		m.viewport.SetContent(renderedContent)
@@ -346,42 +398,54 @@ func (m *model) handleError(msg errMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m *model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	if (m.state == viewResult || (m.isPromptCrafted && m.state == viewReady)) && msg.String() == "c" {
+	switch {
+	case msg.String() == "c" && (m.state == viewResult || (m.craftedPrompt != "" && m.state == viewReady)):
 		return m, copyToClipboardCmd(m.rawViewportContent)
-	}
-
-	if m.isPromptCrafted && m.state == viewReady && msg.String() == "r" {
-		m.state = viewBusy
-		m.busyText = thinkingTextGettingAnswer
-
-		return m, tea.Batch(m.spinner.Tick, sendPromptCmd(m, m.craftedPrompt, false))
-	}
-
-	if msg.Type == tea.KeyEnter {
-		//nolint:exhaustive // This switch is inside the main update loop, which already filters by state.
-		switch m.state {
-		case viewReady:
-			m.state = viewBusy
-			m.busyText = thinkingTextCrafting
-			userInput := m.textInput.Value()
-
-			return m, tea.Batch(m.spinner.Tick, sendPromptCmd(m, userInput, !m.isPromptCrafted))
-		case viewResult, viewError:
-			m.state = viewReady
-			m.isPromptCrafted = false
-			m.craftedPrompt = ""
-			m.textInput.Reset()
-			m.textInput.Placeholder = placeholderRoughPrompt
-			m.rawViewportContent = ""
-			m.viewport.SetContent("")
-
-			return m, nil
-		case viewBusy:
-			// Do nothing.
-		}
+	case msg.String() == "r" && m.craftedPrompt != "" && m.state == viewReady:
+		return m.resubmitPrompt()
+	case msg.Type == tea.KeyEnter:
+		return m.handleEnterKey()
 	}
 
 	return m.updateComponents(msg)
+}
+
+func (m *model) resubmitPrompt() (tea.Model, tea.Cmd) {
+	m.state = viewBusy
+	m.busyText = thinkingTextGettingAnswer
+
+	return m, tea.Batch(m.spinner.Tick, sendPromptCmd(m, m.craftedPrompt, false))
+}
+
+func (m *model) handleEnterKey() (tea.Model, tea.Cmd) {
+	switch m.state {
+	case viewReady:
+		return m.submitPrompt()
+	case viewResult, viewError:
+		m.resetToReady()
+		return m, nil
+	case viewSelectingModel, viewBusy:
+		// Do nothing in these states.
+	}
+
+	return m, nil
+}
+
+func (m *model) submitPrompt() (tea.Model, tea.Cmd) {
+	m.state = viewBusy
+	m.busyText = thinkingTextCrafting
+	userInput := m.textInput.Value()
+
+	return m, tea.Batch(m.spinner.Tick, sendPromptCmd(m, userInput, m.craftedPrompt == ""))
+}
+
+func (m *model) resetToReady() {
+	m.state = viewReady
+	m.craftedPrompt = ""
+	m.textInput.Reset()
+	m.textInput.Placeholder = placeholderRoughPrompt
+	m.rawViewportContent = ""
+	m.viewport.SetContent("")
 }
 
 func (m *model) updateComponents(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -437,11 +501,7 @@ func (m *model) headerView() string {
 	left := m.styles.appName.Render(appName) + " " + m.styles.appVersion.Render("("+m.appVersion+")")
 	right := m.styles.modelName.Render("Model: " + m.selectedModel)
 
-	spaceWidth := m.width - lipgloss.Width(left) - lipgloss.Width(right) - (headerPadding * 2)
-	if spaceWidth < 0 {
-		spaceWidth = 0
-	}
-
+	spaceWidth := max(0, m.width-lipgloss.Width(left)-lipgloss.Width(right)-(headerPadding*2))
 	space := lipgloss.NewStyle().Width(spaceWidth).Render("")
 
 	return m.styles.header.Render(lipgloss.JoinHorizontal(lipgloss.Bottom, left, space, right))
@@ -488,7 +548,7 @@ func (m *model) statusBarView() string {
 
 	help := "esc: quit"
 
-	if m.isPromptCrafted && m.state == viewReady {
+	if m.craftedPrompt != "" && m.state == viewReady {
 		resubmitHelp := m.styles.resubmitHelp.Render("r: resubmit")
 		help = fmt.Sprintf("%s | c: copy | %s", resubmitHelp, help)
 	} else if m.state == viewResult {
