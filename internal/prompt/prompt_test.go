@@ -44,7 +44,6 @@ func TestGenerate(t *testing.T) {
 				Candidates: []*genai.Candidate{
 					{
 						Content: &genai.Content{
-							// The Parts slice must be a slice of POINTERS (*genai.Part).
 							Parts: []*genai.Part{{Text: expectedAnswer}},
 						},
 					},
@@ -57,4 +56,8 @@ func TestGenerate(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, expectedAnswer, answer)
+}
+
+func TestLyraPrompt(t *testing.T) {
+	require.NotEmpty(t, LyraPrompt, "LyraPrompt should not be empty")
 }
