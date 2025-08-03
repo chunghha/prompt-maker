@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -295,11 +296,26 @@ func (m *model) handleAIResponse(msg aiResponseMsg) (tea.Model, tea.Cmd) {
 
 func (m *model) handleError(msg errMsg) (tea.Model, tea.Cmd) {
 	m.state = viewError
-	m.errorMessage = msg.err.Error()
-	m.rawViewportContent = errorText + m.errorMessage
+	m.errorMessage = formatError(msg.err)
+	m.rawViewportContent = m.errorMessage
 	m.viewport.SetContent(m.rawViewportContent)
 
 	return m, nil
+}
+
+func formatError(err error) string {
+	var friendlyMessage string
+
+	switch {
+	case errors.Is(err, errPromptEmpty):
+		friendlyMessage = "Oops! The prompt cannot be empty. Please enter some text."
+	case errors.Is(err, errClipboardWrite):
+		friendlyMessage = "Error: Could not write to clipboard. Please try again."
+	default:
+		friendlyMessage = "An unexpected error occurred. Please try again."
+	}
+
+	return friendlyMessage
 }
 
 func (m *model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -397,7 +413,7 @@ func (m *model) mainContentView() string {
 	case viewResult:
 		return m.viewport.View()
 	case viewError:
-		return m.viewport.View()
+		return m.styles.Error.Render(m.viewport.View())
 	}
 
 	return ""

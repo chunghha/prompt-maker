@@ -15,7 +15,7 @@
 
 - [x] Refactor the massive `internal/tui/tui.go` file into smaller, more manageable components.
 - [x] Add CLI flags for `--model`, `--temperature`, and `--history`.
-- [ ] Improve TUI error messages to be more user-friendly.
+- [x] Improve TUI error messages to be more user-friendly.
 - [ ] Improve the web UI with a modern CSS framework.
 - [ ] Add unit tests for the web handlers.
 - [ ] Add unit tests for the TUI.

@@ -10,7 +10,7 @@ const (
 
 type Styles struct {
 	Header, AppName, AppVersion, ModelName, MainContent, Input, StatusBar, StatusText,
-	ResubmitHelp, SelectedListItem, ListItem, Spinner lipgloss.Style
+	ResubmitHelp, SelectedListItem, ListItem, Spinner, Error lipgloss.Style
 }
 
 func NewStyles() Styles {
@@ -27,5 +27,6 @@ func NewStyles() Styles {
 		SelectedListItem: lipgloss.NewStyle().Padding(0, 0, 0, listHorizontalPadding).Foreground(lipgloss.Color("208")),
 		ListItem:         lipgloss.NewStyle().Padding(0, 0, 0, listHorizontalPadding),
 		Spinner:          lipgloss.NewStyle().Foreground(lipgloss.Color("205")),
+		Error:            lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true),
 	}
 }
