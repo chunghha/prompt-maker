@@ -14,11 +14,11 @@
 ### Suggested Enhancements
 
 - [x] Refactor the massive `internal/tui/tui.go` file into smaller, more manageable components.
-- [ ] Dynamically load models from the Gemini API instead of using a hardcoded list.
-- [ ] Add CLI flags for `--model`, `--temperature`, and `--history`.
+- [x] Add CLI flags for `--model`, `--temperature`, and `--history`.
 - [ ] Improve TUI error messages to be more user-friendly.
 - [ ] Improve the web UI with a modern CSS framework.
 - [ ] Add unit tests for the web handlers.
 - [ ] Add unit tests for the TUI.
 - [ ] Add a CI pipeline to run tests on every push.
 - [ ] Add a release pipeline to automate the creation of GitHub releases.
+- [ ] Dynamically load models from the Gemini API instead of using a hardcoded list.

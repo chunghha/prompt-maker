@@ -13,12 +13,14 @@ import (
 
 var version = "dev"
 
-// The function signature for startTUI no longer needs a model name.
-type startTUIFn func(*config.Config, string) error
+type startTUIFn func(cfg *config.Config, version, modelName, history string, temperature float32) error
 
 type app struct {
-	startTUI startTUIFn
-	version  string
+	startTUI    startTUIFn
+	version     string
+	model       string
+	history     string
+	temperature float32
 }
 
 func NewRootCmd() *cobra.Command {
@@ -41,6 +43,9 @@ func NewRootCmd() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&webMode, "web", false, "Run in web server mode on port 8080")
+	cmd.Flags().StringVar(&a.model, "model", "", "Specify the model to use")
+	cmd.Flags().Float32Var(&a.temperature, "temperature", 0.0, "Specify the model temperature")
+	cmd.Flags().StringVar(&a.history, "history", "", "Path to a file containing chat history")
 
 	return cmd
 }
@@ -85,6 +90,5 @@ func (a *app) runTUI() error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	// The model selection is now handled inside the TUI.
-	return a.startTUI(cfg, a.version)
+	return a.startTUI(cfg, a.version, a.model, a.history, a.temperature)
 }

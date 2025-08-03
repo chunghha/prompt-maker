@@ -21,7 +21,7 @@ import (
 type model struct {
 	ctx                context.Context
 	state              viewState
-	modelList          list.Model // New list component for model selection
+	modelList          list.Model
 	textInput          textinput.Model
 	spinner            spinner.Model
 	viewport           viewport.Model
@@ -29,6 +29,8 @@ type model struct {
 	chatSvc            chatCreator
 	selectedModel      string
 	appVersion         string
+	temperature        float32
+	history            string
 	quitting           bool
 	craftedPrompt      string
 	busyText           string
@@ -40,7 +42,7 @@ type model struct {
 	styles             components.Styles
 }
 
-func New(ctx context.Context, chatSvc chatCreator, version string) tea.Model {
+func New(ctx context.Context, chatSvc chatCreator, version, modelName, history string, temperature float32) tea.Model {
 	// Create items for the list.
 	modelOptions := gemini.GetModelOptions()
 
@@ -68,9 +70,14 @@ func New(ctx context.Context, chatSvc chatCreator, version string) tea.Model {
 
 	renderer, _ := glamour.NewTermRenderer(glamour.WithAutoStyle())
 
+	initialState := viewSelectingModel
+	if modelName != "" {
+		initialState = viewReady
+	}
+
 	return &model{
 		ctx:             ctx,
-		state:           viewSelectingModel, // Start at the new selection view
+		state:           initialState,
 		modelList:       l,
 		textInput:       ti,
 		spinner:         s,
@@ -78,6 +85,9 @@ func New(ctx context.Context, chatSvc chatCreator, version string) tea.Model {
 		glamourRenderer: renderer,
 		chatSvc:         chatSvc,
 		appVersion:      version,
+		selectedModel:   modelName,
+		temperature:     temperature,
+		history:         history,
 		styles:          components.NewStyles(),
 	}
 }

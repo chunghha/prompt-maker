@@ -87,7 +87,7 @@ func (m mockModelOption) FilterValue() string {
 
 func TestUpdate_SubmitEmptyPrompt_ReturnsError(t *testing.T) {
 	// Arrange
-	m := New(context.Background(), &mockChatCreator{}, "v1").(*model)
+	m := New(context.Background(), &mockChatCreator{}, "v1", "", "", 0.0).(*model)
 	// Manually advance state past model selection for the test.
 	m.state = viewReady
 	m.selectedModel = "test-model"
@@ -115,7 +115,7 @@ func TestUpdate_SubmitEmptyPrompt_ReturnsError(t *testing.T) {
 
 func TestUpdate_ModelSelection_UpdatesState(t *testing.T) {
 	// Arrange
-	m := New(context.Background(), &mockChatCreator{}, "v1").(*model)
+	m := New(context.Background(), &mockChatCreator{}, "v1", "", "", 0.0).(*model)
 	require.Equal(t, viewSelectingModel, m.state)
 
 	// Act
@@ -160,7 +160,7 @@ func TestUpdate_SubmitRoughPrompt_GeneratesCraftedPrompt(t *testing.T) {
 		},
 	}
 
-	m := New(ctx, creator, "v1").(*model)
+	m := New(ctx, creator, "v1", "", "", 0.0).(*model)
 	// Manually advance state past model selection for the test.
 	m.state = viewReady
 	m.selectedModel = testModel
@@ -238,7 +238,7 @@ func TestUpdate_ResubmitCraftedPrompt_GetsFinalAnswer(t *testing.T) {
 	}
 
 	// Start the model in the state where a prompt has been crafted.
-	m := New(ctx, creator, "v1").(*model)
+	m := New(ctx, creator, "v1", "", "", 0.0).(*model)
 	m.selectedModel = testModel // Set the model
 	m.state = viewReady
 	m.craftedPrompt = craftedPrompt

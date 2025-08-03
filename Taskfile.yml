@@ -2,7 +2,7 @@ version: "3"
 
 env:
   PGM_NAME: prompt_maker
-  VERSION: "0.8.6"
+  VERSION: "0.8.7"
 
 tasks:
   # --- Frontend Tasks ---
@@ -82,7 +82,7 @@ tasks:
     cmds:
       - golangci-lint run --no-config --enable wsl_v5 --fix
 
-  test:
+  test:unit:
     desc: "Run all tests."
     cmds:
       - go test ./...

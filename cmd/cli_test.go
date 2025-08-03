@@ -32,9 +32,12 @@ func TestApp_RunTUI(t *testing.T) {
 		t.Setenv("GEMINI_API_KEY", "test-key")
 
 		a := &app{
-			startTUI: func(cfg *config.Config, version string) error {
+			startTUI: func(cfg *config.Config, version, modelName, history string, temperature float32) error {
 				assert.NotNil(t, cfg)
 				assert.Equal(t, "dev", version)
+				assert.Empty(t, modelName)
+				assert.Empty(t, history)
+				assert.Zero(t, temperature)
 				return errTUI
 			},
 			version: "dev",

@@ -87,7 +87,7 @@ const (
 // --- TUI Starter ---
 
 // Start no longer takes a modelName.
-func Start(cfg *config.Config, version string) error {
+func Start(cfg *config.Config, version, modelName, history string, temperature float32) error {
 	ctx := context.Background()
 
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{APIKey: cfg.APIKey, Backend: genai.BackendGeminiAPI})
@@ -97,7 +97,7 @@ func Start(cfg *config.Config, version string) error {
 
 	creator := &genaiChatCreator{client: client}
 
-	p := tea.NewProgram(New(ctx, creator, version), tea.WithAltScreen(), tea.WithMouseCellMotion())
+	p := tea.NewProgram(New(ctx, creator, version, modelName, history, temperature), tea.WithAltScreen(), tea.WithMouseCellMotion())
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("error running TUI program: %w", err)
 	}
