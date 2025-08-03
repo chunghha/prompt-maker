@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"prompt-maker/internal/gemini"
+	"prompt-maker/internal/tui/components"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -285,17 +286,17 @@ func TestUpdate_ResubmitCraftedPrompt_GetsFinalAnswer(t *testing.T) {
 }
 
 func TestNewStyles(t *testing.T) {
-	styles := newStyles()
-	require.NotNil(t, styles.header)
-	require.NotNil(t, styles.appName)
-	require.NotNil(t, styles.appVersion)
-	require.NotNil(t, styles.modelName)
-	require.NotNil(t, styles.mainContent)
-	require.NotNil(t, styles.input)
-	require.NotNil(t, styles.statusBar)
-	require.NotNil(t, styles.statusText)
-	require.NotNil(t, styles.resubmitHelp)
-	require.NotNil(t, styles.selectedListItem)
-	require.NotNil(t, styles.listItem)
-	require.NotNil(t, styles.spinner)
+	styles := components.NewStyles()
+	require.NotNil(t, styles.Header)
+	require.NotNil(t, styles.AppName)
+	require.NotNil(t, styles.AppVersion)
+	require.NotNil(t, styles.ModelName)
+	require.NotNil(t, styles.MainContent)
+	require.NotNil(t, styles.Input)
+	require.NotNil(t, styles.StatusBar)
+	require.NotNil(t, styles.StatusText)
+	require.NotNil(t, styles.ResubmitHelp)
+	require.NotNil(t, styles.SelectedListItem)
+	require.NotNil(t, styles.ListItem)
+	require.NotNil(t, styles.Spinner)
 }
