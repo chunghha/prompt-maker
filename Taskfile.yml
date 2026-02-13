@@ -5,6 +5,10 @@ env:
   VERSION: "0.8.9"
 
 tasks:
+  check:all:
+    desc: "Run go fix, typo, format, lint, and unit tests."
+    deps: [go:fix, typo, format, lint, test:unit]
+
   # --- Frontend Tasks ---
   frontend:install:
     desc: "Install node.js dependencies using pnpm."
@@ -40,6 +44,11 @@ tasks:
       - static/css/output.css
 
   # --- Go Tasks ---
+  go:fix:
+    desc: "Apply automated fixes from Go toolchain."
+    cmds:
+      - go fix ./...
+
   templ:gen:
     desc: "Generate Go code from templ files."
     cmds:
@@ -53,6 +62,11 @@ tasks:
       - go build -ldflags="-X 'prompt-maker/cmd.version=$VERSION'" -o $PGM_NAME
 
   # --- Utility Tasks ---
+  run:
+    desc: "Run the application in TUI mode."
+    deps: [build]
+    cmds:
+      - ./$PGM_NAME
   run:web:
     desc: "Run the application in web server mode."
     deps: [build]

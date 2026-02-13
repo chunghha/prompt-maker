@@ -143,6 +143,7 @@ func TestUpdate_SubmitRoughPrompt_GeneratesCraftedPrompt(t *testing.T) {
 	mockSession := &mockChatSession{
 		sendMessageFunc: func(_ context.Context, parts ...genai.Part) (*genai.GenerateContentResponse, error) {
 			require.Contains(t, parts[0].Text, userInput, "Should include user input")
+
 			return &genai.GenerateContentResponse{
 				Candidates: []*genai.Candidate{
 					{Content: &genai.Content{Parts: []*genai.Part{{Text: craftedPrompt}}}},
@@ -220,6 +221,7 @@ func TestUpdate_ResubmitCraftedPrompt_GetsFinalAnswer(t *testing.T) {
 	mockSession := &mockChatSession{
 		sendMessageFunc: func(_ context.Context, parts ...genai.Part) (*genai.GenerateContentResponse, error) {
 			require.Equal(t, craftedPrompt, parts[0].Text, "Should send the crafted prompt directly")
+
 			return &genai.GenerateContentResponse{
 				Candidates: []*genai.Candidate{
 					{Content: &genai.Content{Parts: []*genai.Part{{Text: finalAnswer}}}},

@@ -70,6 +70,7 @@ func TestHandlePrompt(t *testing.T) {
 		GenerateFunc: func(_ context.Context, model, input string) (string, error) {
 			require.Equal(t, selectedModel, model)
 			require.Equal(t, userInput, input)
+
 			return rawResponse, nil
 		},
 	}
@@ -138,6 +139,7 @@ func TestHandleExecute(t *testing.T) {
 		ExecuteFunc: func(_ context.Context, model, input string) (string, error) {
 			require.Equal(t, selectedModel, model)
 			require.Equal(t, craftedPrompt, input)
+
 			return finalAnswer, nil
 		},
 	}

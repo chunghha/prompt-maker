@@ -38,6 +38,7 @@ func TestApp_RunTUI(t *testing.T) {
 				assert.Empty(t, modelName)
 				assert.Empty(t, history)
 				assert.Zero(t, temperature)
+
 				return errTUI
 			},
 			version: "dev",

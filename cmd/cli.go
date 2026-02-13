@@ -38,6 +38,7 @@ func NewRootCmd() *cobra.Command {
 			if webMode {
 				return a.runWeb()
 			}
+
 			return a.runTUI()
 		},
 	}
