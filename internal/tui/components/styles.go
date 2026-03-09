@@ -8,11 +8,13 @@ const (
 	listHorizontalPadding = 2
 )
 
+// Styles holds all lipgloss styles used across the TUI components.
 type Styles struct {
 	Header, AppName, AppVersion, ModelName, MainContent, Input, StatusBar, StatusText,
 	ResubmitHelp, SelectedListItem, ListItem, Spinner, Error lipgloss.Style
 }
 
+// NewStyles returns a Styles struct initialized with the application's default style definitions.
 func NewStyles() Styles {
 	return Styles{
 		Header:           lipgloss.NewStyle().Padding(0, headerPadding),

@@ -2,6 +2,9 @@ prompt_maker
 .task/checksum
 node_modules
 
+# Secrets
+.env*
+
 # Build artifacts
 /static/css/files
 .crush/

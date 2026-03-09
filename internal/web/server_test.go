@@ -47,7 +47,7 @@ func TestHandleIndex(t *testing.T) {
 	require.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", http.NoBody)
 	server.e.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusOK, w.Code)
@@ -79,7 +79,7 @@ func TestHandlePrompt(t *testing.T) {
 	require.NoError(t, err)
 
 	form := strings.NewReader("prompt=" + userInput + "&model=" + selectedModel)
-	req := httptest.NewRequest(http.MethodPost, "/prompt", form)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/prompt", form)
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
 
 	w := httptest.NewRecorder()
@@ -119,7 +119,7 @@ func TestHandleIndex_WithDaisyUI(t *testing.T) {
 	require.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", http.NoBody)
 
 	server.e.ServeHTTP(w, req)
 
@@ -148,7 +148,7 @@ func TestHandleExecute(t *testing.T) {
 	require.NoError(t, err)
 
 	form := strings.NewReader("prompt=" + craftedPrompt + "&model=" + selectedModel)
-	req := httptest.NewRequest(http.MethodPost, "/execute", form)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/execute", form)
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
 
 	w := httptest.NewRecorder()
@@ -172,7 +172,7 @@ func TestHandleUpdateFooter(t *testing.T) {
 	require.NoError(t, err)
 
 	form := strings.NewReader("model=" + selectedModel)
-	req := httptest.NewRequest(http.MethodPost, "/update-footer", form)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/update-footer", form)
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
 
 	w := httptest.NewRecorder()
@@ -195,7 +195,7 @@ func TestHandleIndex_WithLoadingIndicator(t *testing.T) {
 	require.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", http.NoBody)
 	server.e.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusOK, w.Code)
@@ -220,7 +220,7 @@ func TestHandlePrompt_ApiError(t *testing.T) {
 	require.NoError(t, err)
 
 	form := strings.NewReader("prompt=test&model=" + selectedModel)
-	req := httptest.NewRequest(http.MethodPost, "/prompt", form)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/prompt", form)
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
 
 	w := httptest.NewRecorder()
@@ -241,7 +241,7 @@ func TestHandleIndex_WithClearButton(t *testing.T) {
 	require.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", http.NoBody)
 	server.e.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusOK, w.Code)
@@ -256,7 +256,7 @@ func TestHandleClear(t *testing.T) {
 	require.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/clear", http.NoBody)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/clear", http.NoBody)
 
 	// This will fail because the endpoint doesn't exist.
 	server.e.ServeHTTP(w, req)
@@ -282,7 +282,7 @@ func TestHandleExecute_ApiError(t *testing.T) {
 	require.NoError(t, err)
 
 	form := strings.NewReader("prompt=test&model=" + selectedModel)
-	req := httptest.NewRequest(http.MethodPost, "/execute", form)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/execute", form)
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
 
 	w := httptest.NewRecorder()

@@ -12,13 +12,16 @@ import (
 	"google.golang.org/genai"
 )
 
+// LyraPrompt contains the embedded system prompt used to craft optimized prompts.
+//
 //go:embed lyra.txt
 var LyraPrompt string
 
-var (
-	ErrSendMessage          = errors.New("error sending message to Gemini")
-	ErrNoResponseCandidates = errors.New("received no response candidates from model")
-)
+// ErrSendMessage is returned when sending a message to the Gemini model fails.
+var ErrSendMessage = errors.New("error sending message to Gemini")
+
+// ErrNoResponseCandidates is returned when the model returns an empty response.
+var ErrNoResponseCandidates = errors.New("received no response candidates from model")
 
 // Generate creates an optimized prompt by sending the user's input along with the Lyra system prompt to the Gemini model.
 func Generate(ctx context.Context, cs gemini.ChatSession, userInput string) (string, error) {

@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+// ModelOption defines the interface for a selectable model in the TUI list.
 type ModelOption interface {
 	Name() string
 	Desc() string

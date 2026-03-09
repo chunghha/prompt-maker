@@ -28,9 +28,7 @@ const (
 	thinkingTextCrafting      = "Crafting prompt..."
 	thinkingTextGettingAnswer = "Getting a response..."
 	initialInstructionText    = "Enter a rough prompt for Lyra to improve."
-	errorText                 = "Error: "
 	goodbyeText               = "Goodbye!\n"
-	listHorizontalPadding     = 2
 	modelListHeight           = 14
 )
 

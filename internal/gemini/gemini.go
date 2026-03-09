@@ -1,13 +1,6 @@
 package gemini
 
-import (
-	"errors"
-)
-
-var (
-	ErrNoModelSelected = errors.New("no model selected")
-)
-
+// ModelOption represents a selectable AI model with a name and description.
 type ModelOption struct {
 	ModelName string
 	ModelDesc string
