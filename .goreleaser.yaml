@@ -19,7 +19,7 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w -X github.com/chunghha/prompt-maker/cmd.version={{.Version}}
+      - -s -w -X prompt-maker/cmd.version={{.Version}}
 archives:
   - id: default
     format: tar.gz
