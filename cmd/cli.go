@@ -2,8 +2,16 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
 	"prompt-maker/internal/config"
+	"prompt-maker/internal/observability"
 	"prompt-maker/internal/tui"
 	"prompt-maker/internal/web"
 
@@ -12,6 +20,11 @@ import (
 )
 
 var version = "dev"
+
+const (
+	tracerShutdownTimeout = 5 * time.Second
+	serverShutdownTimeout = 10 * time.Second
+)
 
 type startTUIFn func(cfg *config.Config, version, modelName, history string, temperature float32) error
 
@@ -23,6 +36,8 @@ type app struct {
 	temperature float32
 }
 
+// NewRootCmd creates the root Cobra command for the prompt-maker CLI.
+// It supports TUI mode (default) and web server mode (--web).
 func NewRootCmd() *cobra.Command {
 	a := &app{
 		startTUI: tui.Start,
@@ -51,7 +66,7 @@ func NewRootCmd() *cobra.Command {
 	return cmd
 }
 
-// runWeb configures and starts the web server.
+// runWeb configures and starts the web server with OTEL tracing and graceful shutdown.
 func (a *app) runWeb() error {
 	cfg, err := config.Load()
 	if err != nil {
@@ -60,15 +75,27 @@ func (a *app) runWeb() error {
 
 	ctx := context.Background()
 
+	shutdown, err := observability.SetupTracing(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to setup tracing: %w", err)
+	}
+
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), tracerShutdownTimeout)
+		defer cancel()
+
+		if shutdownErr := shutdown(shutdownCtx); shutdownErr != nil {
+			slog.Error("failed to shutdown tracer provider", "error", shutdownErr)
+		}
+	}()
+
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{APIKey: cfg.APIKey})
 	if err != nil {
 		return fmt.Errorf("failed to create genai client: %w", err)
 	}
 
-	// The generator constructor no longer takes a model name.
 	promptGenerator := web.NewGeminiPromptGenerator(client)
 
-	// The web config no longer takes a model name.
 	webCfg := web.Config{
 		Generator: promptGenerator,
 		Version:   a.version,
@@ -79,9 +106,38 @@ func (a *app) runWeb() error {
 		return fmt.Errorf("failed to create web server: %w", err)
 	}
 
-	fmt.Printf("Starting web server on http://localhost:8080\n")
+	// Start server in a goroutine for graceful shutdown.
+	errCh := make(chan error, 1)
 
-	return server.Start(":8080")
+	go func() {
+		slog.Info("starting web server", "addr", "http://localhost:8080")
+
+		if srvErr := server.Start(":8080"); srvErr != nil && !errors.Is(srvErr, http.ErrServerClosed) {
+			errCh <- srvErr
+		}
+
+		close(errCh)
+	}()
+
+	// Wait for interrupt signal.
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+
+	select {
+	case srvErr := <-errCh:
+		return fmt.Errorf("server error: %w", srvErr)
+	case <-quit:
+		slog.Info("shutting down web server")
+	}
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), serverShutdownTimeout)
+	defer cancel()
+
+	if shutdownErr := server.Shutdown(shutdownCtx); shutdownErr != nil {
+		return fmt.Errorf("failed to shutdown server: %w", shutdownErr)
+	}
+
+	return nil
 }
 
 // runTUI is simplified. It no longer selects a model.

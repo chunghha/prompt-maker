@@ -2,6 +2,8 @@ package web
 
 import (
 	"context"
+	"fmt"
+
 	"prompt-maker/internal/config"
 	"prompt-maker/internal/prompt"
 
@@ -35,7 +37,7 @@ func (g *geminiPromptGenerator) Generate(ctx context.Context, modelName, userInp
 
 	session, err := g.client.Chats.Create(ctx, modelName, genConfig, nil)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("creating chat session for prompt generation: %w", err)
 	}
 
 	return prompt.Generate(ctx, session, userInput)
@@ -49,7 +51,7 @@ func (g *geminiPromptGenerator) Execute(ctx context.Context, modelName, userInpu
 
 	session, err := g.client.Chats.Create(ctx, modelName, genConfig, nil)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("creating chat session for prompt execution: %w", err)
 	}
 
 	return prompt.Execute(ctx, session, userInput)

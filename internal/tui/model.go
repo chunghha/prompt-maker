@@ -21,6 +21,7 @@ import (
 
 type model struct {
 	ctx                context.Context
+	cancel             context.CancelFunc
 	state              viewState
 	modelList          list.Model
 	textInput          textinput.Model
@@ -44,6 +45,8 @@ type model struct {
 }
 
 func New(ctx context.Context, chatSvc chatCreator, version, modelName, history string, temperature float32) tea.Model {
+	ctx, cancel := context.WithCancel(ctx)
+
 	// Create items for the list.
 	modelOptions := gemini.GetModelOptions()
 
@@ -69,7 +72,10 @@ func New(ctx context.Context, chatSvc chatCreator, version, modelName, history s
 
 	vp := viewport.New(initialViewportWidth, initialViewportHeight)
 
-	renderer, _ := glamour.NewTermRenderer(glamour.WithAutoStyle())
+	renderer, err := glamour.NewTermRenderer(glamour.WithAutoStyle())
+	if err != nil {
+		renderer = nil // graceful fallback: raw markdown will be shown
+	}
 
 	initialState := viewSelectingModel
 	if modelName != "" {
@@ -78,6 +84,7 @@ func New(ctx context.Context, chatSvc chatCreator, version, modelName, history s
 
 	return &model{
 		ctx:             ctx,
+		cancel:          cancel,
 		state:           initialState,
 		modelList:       l,
 		textInput:       ti,
@@ -107,7 +114,9 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		// Global quit works in any state.
 		if msg.Type == tea.KeyCtrlC || msg.Type == tea.KeyEsc {
+			m.cancel()
 			m.quitting = true
+
 			return m, tea.Quit
 		}
 	}
@@ -251,9 +260,11 @@ func (m *model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// Re-render the content with the new renderer settings.
-	if m.rawViewportContent != "" {
-		rendered, _ := m.glamourRenderer.Render(m.rawViewportContent)
-		m.viewport.SetContent(rendered)
+	if m.rawViewportContent != "" && m.glamourRenderer != nil {
+		rendered, renderErr := m.glamourRenderer.Render(m.rawViewportContent)
+		if renderErr == nil {
+			m.viewport.SetContent(rendered)
+		}
 	}
 
 	return m, nil
@@ -335,7 +346,7 @@ func (m *model) resubmitPrompt() (tea.Model, tea.Cmd) {
 	m.state = viewBusy
 	m.busyText = thinkingTextGettingAnswer
 
-	return m, tea.Batch(m.spinner.Tick, sendPromptCmd(m, m.craftedPrompt, false))
+	return m, tea.Batch(m.spinner.Tick, sendPromptCmd(m.ctx, m.chatSvc, m.selectedModel, m.craftedPrompt, false))
 }
 
 func (m *model) handleEnterKey() (tea.Model, tea.Cmd) {
@@ -357,7 +368,7 @@ func (m *model) submitPrompt() (tea.Model, tea.Cmd) {
 	m.busyText = thinkingTextCrafting
 	userInput := m.textInput.Value()
 
-	return m, tea.Batch(m.spinner.Tick, sendPromptCmd(m, userInput, m.craftedPrompt == ""))
+	return m, tea.Batch(m.spinner.Tick, sendPromptCmd(m.ctx, m.chatSvc, m.selectedModel, userInput, m.craftedPrompt == ""))
 }
 
 func (m *model) resetToReady() {

@@ -2,6 +2,8 @@ package web
 
 import (
 	"bytes"
+	"context"
+	"log/slog"
 	"net/http"
 	"prompt-maker/internal/config"
 
@@ -10,6 +12,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/renderer/html"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 )
 
 // Server holds our testable interface and config values.
@@ -26,9 +29,33 @@ type Config struct {
 	Version   string
 }
 
+// NewServer creates a configured Echo server with OTEL tracing,
+// structured request logging, error handling middleware, and routes.
 func NewServer(cfg Config) (*Server, error) {
 	e := echo.New()
-	e.Use(middleware.Logger())
+	e.Use(otelecho.Middleware("prompt-maker"))
+	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+		LogStatus:  true,
+		LogURI:     true,
+		LogMethod:  true,
+		LogLatency: true,
+		LogError:   true,
+		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+			attrs := []slog.Attr{
+				slog.String("method", v.Method),
+				slog.String("uri", v.URI),
+				slog.Int("status", v.Status),
+				slog.Duration("latency", v.Latency),
+			}
+			if v.Error != nil {
+				attrs = append(attrs, slog.String("error", v.Error.Error()))
+			}
+
+			slog.LogAttrs(c.Request().Context(), slog.LevelInfo, "request", attrs...)
+
+			return nil
+		},
+	}))
 	e.Use(middleware.Recover())
 	e.Use(ErrorMiddleware)
 	e.Static("/static", "static")
@@ -58,6 +85,11 @@ func (s *Server) registerRoutes() {
 
 func (s *Server) Start(addr string) error {
 	return s.e.Start(addr)
+}
+
+// Shutdown gracefully shuts down the server without interrupting active connections.
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.e.Shutdown(ctx)
 }
 
 func (s *Server) handleIndex(c echo.Context) error {

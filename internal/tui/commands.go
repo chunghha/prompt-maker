@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 
 	"prompt-maker/internal/config"
@@ -23,7 +24,10 @@ func copyToClipboardCmd(content string) tea.Cmd {
 	}
 }
 
-func sendPromptCmd(m *model, userPrompt string, useLyra bool) tea.Cmd {
+// sendPromptCmd creates a tea.Cmd that sends a prompt to the AI model.
+// It captures ctx, chatSvc, and selectedModel by value to avoid a data
+// race with the main Update goroutine.
+func sendPromptCmd(ctx context.Context, chatSvc chatCreator, selectedModel, userPrompt string, useLyra bool) tea.Cmd {
 	return func() tea.Msg {
 		if userPrompt == "" {
 			return errMsg{err: errPromptEmpty}
@@ -31,21 +35,21 @@ func sendPromptCmd(m *model, userPrompt string, useLyra bool) tea.Cmd {
 
 		genConfig := &genai.GenerateContentConfig{Temperature: genai.Ptr(float32(config.DefaultModelTemperature))}
 
-		session, err := m.chatSvc.Create(m.ctx, m.selectedModel, genConfig, nil)
+		session, err := chatSvc.Create(ctx, selectedModel, genConfig, nil)
 		if err != nil {
-			return errMsg{err: err}
+			return errMsg{err: fmt.Errorf("creating chat session: %w", err)}
 		}
 
 		if useLyra {
-			return generateCraftedPrompt(m, session, userPrompt)
+			return generateCraftedPrompt(ctx, session, userPrompt)
 		}
 
-		return getFinalAnswer(m, session, userPrompt)
+		return getFinalAnswer(ctx, session, userPrompt)
 	}
 }
 
-func generateCraftedPrompt(m *model, session gemini.ChatSession, userPrompt string) tea.Msg {
-	response, err := prompt.Generate(m.ctx, session, userPrompt)
+func generateCraftedPrompt(ctx context.Context, session gemini.ChatSession, userPrompt string) tea.Msg {
+	response, err := prompt.Generate(ctx, session, userPrompt)
 	if err != nil {
 		return errMsg{err: err}
 	}
@@ -53,8 +57,8 @@ func generateCraftedPrompt(m *model, session gemini.ChatSession, userPrompt stri
 	return aiResponseMsg{response: response}
 }
 
-func getFinalAnswer(m *model, session gemini.ChatSession, userPrompt string) tea.Msg {
-	response, err := prompt.Execute(m.ctx, session, userPrompt)
+func getFinalAnswer(ctx context.Context, session gemini.ChatSession, userPrompt string) tea.Msg {
+	response, err := prompt.Execute(ctx, session, userPrompt)
 	if err != nil {
 		return errMsg{err: err}
 	}
