@@ -44,6 +44,7 @@ type model struct {
 	styles             components.Styles
 }
 
+// New creates and returns a new TUI model configured with the given chat service and options.
 func New(ctx context.Context, chatSvc chatCreator, version, modelName, history string, temperature float32) tea.Model {
 	ctx, cancel := context.WithCancel(ctx)
 

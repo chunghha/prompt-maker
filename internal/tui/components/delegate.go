@@ -18,10 +18,17 @@ type ModelOption interface {
 // ItemDelegate for the model selection list.
 type ItemDelegate struct{}
 
-func (ItemDelegate) Height() int                             { return 1 }
-func (ItemDelegate) Spacing() int                            { return 0 }
+// Height returns the height of a single list item.
+func (ItemDelegate) Height() int { return 1 }
+
+// Spacing returns the spacing between list items.
+func (ItemDelegate) Spacing() int { return 0 }
+
+// Update handles messages for the delegate (no-op).
 func (ItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 
+// Render draws a single list item to the writer.
+//
 //nolint:gocritic // The signature is defined by the list.ItemDelegate interface, which requires passing list.Model by value.
 func (ItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
 	i, ok := listItem.(ModelOption)

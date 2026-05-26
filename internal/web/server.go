@@ -83,6 +83,7 @@ func (s *Server) registerRoutes() {
 	s.e.POST("/clear", handleClear)
 }
 
+// Start begins listening on addr and serves HTTP requests until the server's context is canceled.
 func (s *Server) Start(addr string) error {
 	return s.e.Start(addr)
 }

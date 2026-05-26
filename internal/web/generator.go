@@ -22,7 +22,7 @@ type geminiPromptGenerator struct {
 	client *genai.Client
 }
 
-// The constructor no longer needs the modelName.
+// NewGeminiPromptGenerator returns a PromptGenerator backed by the Gemini API.
 func NewGeminiPromptGenerator(client *genai.Client) PromptGenerator {
 	return &geminiPromptGenerator{
 		client: client,
