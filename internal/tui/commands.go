@@ -51,7 +51,7 @@ func sendPromptCmd(ctx context.Context, chatSvc chatCreator, selectedModel, user
 func generateCraftedPrompt(ctx context.Context, session gemini.ChatSession, userPrompt string) tea.Msg {
 	response, err := prompt.Generate(ctx, session, userPrompt)
 	if err != nil {
-		return errMsg{err: err}
+		return errMsg{err: fmt.Errorf("generating crafted prompt: %w", err)}
 	}
 
 	return aiResponseMsg{response: response}
@@ -60,7 +60,7 @@ func generateCraftedPrompt(ctx context.Context, session gemini.ChatSession, user
 func getFinalAnswer(ctx context.Context, session gemini.ChatSession, userPrompt string) tea.Msg {
 	response, err := prompt.Execute(ctx, session, userPrompt)
 	if err != nil {
-		return errMsg{err: err}
+		return errMsg{err: fmt.Errorf("getting final answer: %w", err)}
 	}
 
 	return aiResponseMsg{response: response}

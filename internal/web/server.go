@@ -96,16 +96,14 @@ func (s *Server) handleIndex(c *echo.Context) error {
 }
 
 func (s *Server) handlePrompt(c *echo.Context) error {
-	return s.handleGenerate(c, s.generator.Generate, "The AI failed to generate a response. Please try again.",
-		func(html, raw, model string) templ.Component {
-			return craftedPromptComponent(html, raw, model)
-		},
-	)
+	return s.handleGenerate(c, s.generator.Generate,
+		"The AI failed to generate a response. Please try again.", craftedPromptComponent)
 }
 
 func (s *Server) handleExecute(c *echo.Context) error {
-	return s.handleGenerate(c, s.generator.Execute, "The AI failed to execute the prompt. Please try again.",
-		func(html, raw, model string) templ.Component {
+	return s.handleGenerate(c, s.generator.Execute,
+		"The AI failed to execute the prompt. Please try again.",
+		func(html, raw, _ string) templ.Component {
 			return finalAnswerComponent(html, raw)
 		},
 	)

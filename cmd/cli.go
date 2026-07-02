@@ -80,7 +80,7 @@ func (a *app) runWeb() error {
 		defer cancel()
 
 		if shutdownErr := shutdown(shutdownCtx); shutdownErr != nil {
-			slog.Error("failed to shutdown tracer provider", "error", shutdownErr)
+			slog.ErrorContext(shutdownCtx, "failed to shutdown tracer provider", "error", shutdownErr)
 		}
 	}()
 
@@ -101,7 +101,7 @@ func (a *app) runWeb() error {
 		return fmt.Errorf("failed to create web server: %w", err)
 	}
 
-	slog.Info("starting web server", "addr", "http://localhost:8080")
+	slog.InfoContext(ctx, "starting web server", "addr", "http://localhost:8080")
 
 	// Echo v5's Start blocks until Interrupt/SIGTERM and handles graceful shutdown.
 	return server.Start(":8080")

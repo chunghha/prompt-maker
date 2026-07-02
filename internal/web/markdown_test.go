@@ -11,7 +11,7 @@ func BenchmarkMarkdownToHTML(b *testing.B) {
 	}
 
 	md := "This is a **test** of the `markdownToHTML` function."
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		s.markdownToHTML(md)
 	}
 }

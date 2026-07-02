@@ -19,8 +19,8 @@ func ErrorMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 
 		slog.ErrorContext(c.Request().Context(), "handler error", "error", err)
 
-		var he *echo.HTTPError
-		if !errors.As(err, &he) {
+		he, ok := errors.AsType[*echo.HTTPError](err)
+		if !ok {
 			he = &echo.HTTPError{
 				Code:    http.StatusInternalServerError,
 				Message: "Internal Server Error",

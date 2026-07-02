@@ -47,10 +47,10 @@ func newTestServer(t *testing.T, gen *mockPromptGenerator, version string) *Serv
 	return server
 }
 
-// doGET performs a GET request to the given path on the server and returns the recorder.
-func doGET(server *Server, path string) *httptest.ResponseRecorder {
+// doGETIndex performs a GET request to "/" on the server and returns the recorder.
+func doGETIndex(server *Server) *httptest.ResponseRecorder {
 	w := httptest.NewRecorder()
-	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, path, http.NoBody)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", http.NoBody)
 	server.e.ServeHTTP(w, req)
 
 	return w
@@ -63,7 +63,7 @@ func TestHandleIndex(t *testing.T) {
 		},
 	}
 	server := newTestServer(t, mockGen, "test-version")
-	w := doGET(server, "/")
+	w := doGETIndex(server)
 
 	require.Equal(t, http.StatusOK, w.Code)
 	body := w.Body.String()
@@ -130,7 +130,7 @@ func TestHandleIndex_WithDaisyUI(t *testing.T) {
 		},
 	}
 	server := newTestServer(t, mockGen, "test-version")
-	w := doGET(server, "/")
+	w := doGETIndex(server)
 
 	require.Equal(t, http.StatusOK, w.Code)
 	require.Contains(t, w.Body.String(), "Model: "+config.DefaultModel)
@@ -199,7 +199,7 @@ func TestHandleIndex_WithLoadingIndicator(t *testing.T) {
 		},
 	}
 	server := newTestServer(t, mockGen, "test")
-	w := doGET(server, "/")
+	w := doGETIndex(server)
 
 	require.Equal(t, http.StatusOK, w.Code)
 	require.Contains(t, w.Body.String(), `hx-indicator="#prompt-indicator"`)
@@ -240,7 +240,7 @@ func TestHandleIndex_WithClearButton(t *testing.T) {
 		},
 	}
 	server := newTestServer(t, mockGen, "test")
-	w := doGET(server, "/")
+	w := doGETIndex(server)
 
 	require.Equal(t, http.StatusOK, w.Code)
 	// Assert that the clear button exists with the correct HTMX attributes. This will fail.

@@ -2,7 +2,7 @@ version: "3"
 
 env:
   PGM_NAME: prompt_maker
-  VERSION: "0.8.6"
+  VERSION: "0.8.7"
 
 tasks:
   check:all:
