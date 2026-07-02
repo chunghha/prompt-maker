@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +18,7 @@ func TestErrorMiddleware(t *testing.T) {
 	c := e.NewContext(req, rec)
 
 	// Create a handler that always returns an error.
-	handler := func(_ echo.Context) error {
+	handler := func(_ *echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Something went wrong")
 	}
 

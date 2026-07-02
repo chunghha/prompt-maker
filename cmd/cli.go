@@ -2,12 +2,8 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
-	"os"
-	"os/signal"
 	"time"
 
 	"prompt-maker/internal/config"
@@ -21,10 +17,7 @@ import (
 
 var version = "dev"
 
-const (
-	tracerShutdownTimeout = 5 * time.Second
-	serverShutdownTimeout = 10 * time.Second
-)
+const tracerShutdownTimeout = 5 * time.Second
 
 type startTUIFn func(cfg *config.Config, version, modelName, history string, temperature float32) error
 
@@ -66,7 +59,9 @@ func NewRootCmd() *cobra.Command {
 	return cmd
 }
 
-// runWeb configures and starts the web server with OTEL tracing and graceful shutdown.
+// runWeb configures and starts the web server with OTEL tracing.
+// In Echo v5, Start blocks until an OS signal is received and
+// performs graceful shutdown automatically.
 func (a *app) runWeb() error {
 	cfg, err := config.Load()
 	if err != nil {
@@ -106,38 +101,10 @@ func (a *app) runWeb() error {
 		return fmt.Errorf("failed to create web server: %w", err)
 	}
 
-	// Start server in a goroutine for graceful shutdown.
-	errCh := make(chan error, 1)
+	slog.Info("starting web server", "addr", "http://localhost:8080")
 
-	go func() {
-		slog.Info("starting web server", "addr", "http://localhost:8080")
-
-		if srvErr := server.Start(":8080"); srvErr != nil && !errors.Is(srvErr, http.ErrServerClosed) {
-			errCh <- srvErr
-		}
-
-		close(errCh)
-	}()
-
-	// Wait for interrupt signal.
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt)
-
-	select {
-	case srvErr := <-errCh:
-		return fmt.Errorf("server error: %w", srvErr)
-	case <-quit:
-		slog.Info("shutting down web server")
-	}
-
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), serverShutdownTimeout)
-	defer cancel()
-
-	if shutdownErr := server.Shutdown(shutdownCtx); shutdownErr != nil {
-		return fmt.Errorf("failed to shutdown server: %w", shutdownErr)
-	}
-
-	return nil
+	// Echo v5's Start blocks until Interrupt/SIGTERM and handles graceful shutdown.
+	return server.Start(":8080")
 }
 
 // runTUI is simplified. It no longer selects a model.

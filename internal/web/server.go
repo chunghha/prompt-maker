@@ -2,17 +2,17 @@ package web
 
 import (
 	"bytes"
-	"context"
 	"log/slog"
 	"net/http"
 	"prompt-maker/internal/config"
 
 	"github.com/a-h/templ"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/renderer/html"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
+
+	echootel "github.com/labstack/echo-opentelemetry"
 )
 
 // Server holds our testable interface and config values.
@@ -33,14 +33,13 @@ type Config struct {
 // structured request logging, error handling middleware, and routes.
 func NewServer(cfg Config) (*Server, error) {
 	e := echo.New()
-	e.Use(otelecho.Middleware("prompt-maker"))
+	e.Use(echootel.NewMiddleware("prompt-maker"))
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogStatus:  true,
 		LogURI:     true,
 		LogMethod:  true,
 		LogLatency: true,
-		LogError:   true,
-		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+		LogValuesFunc: func(c *echo.Context, v middleware.RequestLoggerValues) error {
 			attrs := []slog.Attr{
 				slog.String("method", v.Method),
 				slog.String("uri", v.URI),
@@ -83,22 +82,19 @@ func (s *Server) registerRoutes() {
 	s.e.POST("/clear", handleClear)
 }
 
-// Start begins listening on addr and serves HTTP requests until the server's context is canceled.
+// Start begins listening on addr and serves HTTP requests.
+// In Echo v5, Start blocks until an OS signal (Interrupt/SIGTERM) is received
+// and performs graceful shutdown automatically.
 func (s *Server) Start(addr string) error {
 	return s.e.Start(addr)
 }
 
-// Shutdown gracefully shuts down the server without interrupting active connections.
-func (s *Server) Shutdown(ctx context.Context) error {
-	return s.e.Shutdown(ctx)
-}
-
-func (s *Server) handleIndex(c echo.Context) error {
+func (s *Server) handleIndex(c *echo.Context) error {
 	// Pass the model names, themes, and default theme to the index page template.
 	return render(c, indexPage(s.version, config.DefaultModel, DefaultTheme, s.generator.GetModelNames(), getThemes()))
 }
 
-func (s *Server) handlePrompt(c echo.Context) error {
+func (s *Server) handlePrompt(c *echo.Context) error {
 	userInput := c.FormValue("prompt")
 
 	modelName := c.FormValue("model")
@@ -118,7 +114,7 @@ func (s *Server) handlePrompt(c echo.Context) error {
 	return render(c, craftedPromptComponent(craftedPromptHTML, craftedPrompt, modelName))
 }
 
-func (s *Server) handleExecute(c echo.Context) error {
+func (s *Server) handleExecute(c *echo.Context) error {
 	craftedPrompt := c.FormValue("prompt")
 
 	modelName := c.FormValue("model")
@@ -138,7 +134,7 @@ func (s *Server) handleExecute(c echo.Context) error {
 	return render(c, finalAnswerComponent(finalAnswerHTML, finalAnswer))
 }
 
-func (s *Server) handleUpdateFooter(c echo.Context) error {
+func (s *Server) handleUpdateFooter(c *echo.Context) error {
 	modelName := c.FormValue("model")
 	if modelName == "" {
 		modelName = config.DefaultModel
@@ -147,7 +143,7 @@ func (s *Server) handleUpdateFooter(c echo.Context) error {
 	return render(c, footerComponent(s.version, modelName))
 }
 
-func handleClear(c echo.Context) error {
+func handleClear(c *echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
@@ -161,7 +157,7 @@ func (s *Server) markdownToHTML(str string) string {
 	return buf.String()
 }
 
-func render(c echo.Context, component templ.Component) error {
+func render(c *echo.Context, component templ.Component) error {
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTML)
-	return component.Render(c.Request().Context(), c.Response().Writer)
+	return component.Render(c.Request().Context(), c.Response())
 }
