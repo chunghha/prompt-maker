@@ -186,23 +186,38 @@ func (m *model) updateModelSelection(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+// handleCommonMsg handles messages shared across multiple view states:
+// statusMessage, clearStatusMsg, and tea.KeyMsg.
+// Returns (model, cmd, true) if the message was handled; otherwise (nil, nil, false).
+func (m *model) handleCommonMsg(msg tea.Msg) (tea.Model, tea.Cmd, bool) {
+	switch msg := msg.(type) {
+	case statusMessage:
+		m.statusMessage = string(msg)
+
+		return m, tea.Tick(copyStatusDuration, func(_ time.Time) tea.Msg {
+			return clearStatusMsg{}
+		}), true
+	case clearStatusMsg:
+		m.statusMessage = ""
+		return m, nil, true
+	case tea.KeyMsg:
+		model, cmd := m.handleKeyMsg(msg)
+		return model, cmd, true
+	}
+
+	return nil, nil, false
+}
+
 func (m *model) updateReady(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case aiResponseMsg:
 		return m.handleAIResponse(msg)
 	case errMsg:
 		return m.handleError(msg)
-	case statusMessage:
-		m.statusMessage = string(msg)
+	}
 
-		return m, tea.Tick(copyStatusDuration, func(_ time.Time) tea.Msg {
-			return clearStatusMsg{}
-		})
-	case clearStatusMsg:
-		m.statusMessage = ""
-		return m, nil
-	case tea.KeyMsg:
-		return m.handleKeyMsg(msg)
+	if model, cmd, ok := m.handleCommonMsg(msg); ok {
+		return model, cmd
 	}
 
 	return m.updateComponents(msg)
@@ -220,18 +235,8 @@ func (m *model) updateBusy(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *model) updateResult(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case statusMessage:
-		m.statusMessage = string(msg)
-
-		return m, tea.Tick(copyStatusDuration, func(_ time.Time) tea.Msg {
-			return clearStatusMsg{}
-		})
-	case clearStatusMsg:
-		m.statusMessage = ""
-		return m, nil
-	case tea.KeyMsg:
-		return m.handleKeyMsg(msg)
+	if model, cmd, ok := m.handleCommonMsg(msg); ok {
+		return model, cmd
 	}
 
 	return m.updateComponents(msg)

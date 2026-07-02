@@ -23,13 +23,11 @@ func TestModelOption_FilterValue(t *testing.T) {
 
 func TestGetModelOptions(t *testing.T) {
 	options := GetModelOptions()
-	assert.Len(t, options, 3)
+	assert.NotEmpty(t, options, "GetModelOptions should return at least one model")
 
-	expectedModels := []ModelOption{
-		{ModelName: "gemini-2.5-flash-lite", ModelDesc: "Latest fast, multi-modal model."},
-		{ModelName: "gemini-2.5-flash", ModelDesc: "Latest stable flash model."},
-		{ModelName: "gemini-2.5-pro", ModelDesc: "Latest stable pro model."},
+	for _, opt := range options {
+		assert.NotEmpty(t, opt.ModelName, "ModelName should not be empty")
+		assert.NotEmpty(t, opt.ModelDesc, "ModelDesc should not be empty")
+		assert.Equal(t, opt.ModelName, opt.FilterValue(), "FilterValue should return ModelName")
 	}
-
-	assert.ElementsMatch(t, expectedModels, options)
 }

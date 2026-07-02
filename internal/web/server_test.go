@@ -37,18 +37,33 @@ func (m *mockPromptGenerator) GetModelNames() []string {
 	return m.GetModelNamesFunc()
 }
 
+// newTestServer creates a Server with the given mock generator and version for testing.
+func newTestServer(t *testing.T, gen *mockPromptGenerator, version string) *Server {
+	t.Helper()
+
+	server, err := NewServer(Config{Generator: gen, Version: version})
+	require.NoError(t, err)
+
+	return server
+}
+
+// doGET performs a GET request to the given path on the server and returns the recorder.
+func doGET(server *Server, path string) *httptest.ResponseRecorder {
+	w := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, path, http.NoBody)
+	server.e.ServeHTTP(w, req)
+
+	return w
+}
+
 func TestHandleIndex(t *testing.T) {
 	mockGen := &mockPromptGenerator{
 		GetModelNamesFunc: func() []string {
 			return []string{"test-model-1", "test-model-2"}
 		},
 	}
-	server, err := NewServer(Config{Generator: mockGen, Version: "test-version"})
-	require.NoError(t, err)
-
-	w := httptest.NewRecorder()
-	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", http.NoBody)
-	server.e.ServeHTTP(w, req)
+	server := newTestServer(t, mockGen, "test-version")
+	w := doGET(server, "/")
 
 	require.Equal(t, http.StatusOK, w.Code)
 	body := w.Body.String()
@@ -75,8 +90,7 @@ func TestHandlePrompt(t *testing.T) {
 		},
 	}
 
-	server, err := NewServer(Config{Generator: mockGen, Version: "test"})
-	require.NoError(t, err)
+	server := newTestServer(t, mockGen, "test")
 
 	form := strings.NewReader("prompt=" + userInput + "&model=" + selectedModel)
 	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/prompt", form)
@@ -115,13 +129,8 @@ func TestHandleIndex_WithDaisyUI(t *testing.T) {
 			return []string{"test-model-1"}
 		},
 	}
-	server, err := NewServer(Config{Generator: mockGen, Version: "test-version"})
-	require.NoError(t, err)
-
-	w := httptest.NewRecorder()
-	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", http.NoBody)
-
-	server.e.ServeHTTP(w, req)
+	server := newTestServer(t, mockGen, "test-version")
+	w := doGET(server, "/")
 
 	require.Equal(t, http.StatusOK, w.Code)
 	require.Contains(t, w.Body.String(), "Model: "+config.DefaultModel)
@@ -144,8 +153,7 @@ func TestHandleExecute(t *testing.T) {
 		},
 	}
 
-	server, err := NewServer(Config{Generator: mockGen, Version: "test"})
-	require.NoError(t, err)
+	server := newTestServer(t, mockGen, "test")
 
 	form := strings.NewReader("prompt=" + craftedPrompt + "&model=" + selectedModel)
 	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/execute", form)
@@ -168,8 +176,7 @@ func TestHandleUpdateFooter(t *testing.T) {
 	)
 
 	mockGen := &mockPromptGenerator{}
-	server, err := NewServer(Config{Generator: mockGen, Version: testVersion})
-	require.NoError(t, err)
+	server := newTestServer(t, mockGen, testVersion)
 
 	form := strings.NewReader("model=" + selectedModel)
 	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/update-footer", form)
@@ -191,36 +198,21 @@ func TestHandleIndex_WithLoadingIndicator(t *testing.T) {
 			return []string{"test-model-1"}
 		},
 	}
-	server, err := NewServer(Config{Generator: mockGen, Version: "test"})
-	require.NoError(t, err)
-
-	w := httptest.NewRecorder()
-	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", http.NoBody)
-	server.e.ServeHTTP(w, req)
+	server := newTestServer(t, mockGen, "test")
+	w := doGET(server, "/")
 
 	require.Equal(t, http.StatusOK, w.Code)
 	require.Contains(t, w.Body.String(), `hx-indicator="#prompt-indicator"`)
 	require.Contains(t, w.Body.String(), `id="prompt-indicator"`)
 }
 
-func TestHandlePrompt_ApiError(t *testing.T) {
-	const (
-		userFacingErrorMessage = "The AI failed to generate a response. Please try again."
-		selectedModel          = "gemini-2.5-flash"
-	)
+// assertAPIError verifies that posting "prompt=test&model=<model>" to the
+// given path returns HTTP 500 with the expected error message.
+func assertAPIError(t *testing.T, server *Server, path, expectedMessage string) {
+	t.Helper()
 
-	mockGen := &mockPromptGenerator{
-		GenerateFunc: func(_ context.Context, _, _ string) (string, error) {
-			// Use the correctly named error variable.
-			return "", errMockAPIFailed
-		},
-	}
-
-	server, err := NewServer(Config{Generator: mockGen, Version: "test"})
-	require.NoError(t, err)
-
-	form := strings.NewReader("prompt=test&model=" + selectedModel)
-	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/prompt", form)
+	form := strings.NewReader("prompt=test&model=gemini-2.5-flash")
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, path, form)
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
 
 	w := httptest.NewRecorder()
@@ -228,7 +220,17 @@ func TestHandlePrompt_ApiError(t *testing.T) {
 	server.e.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusInternalServerError, w.Code)
-	require.Contains(t, w.Body.String(), userFacingErrorMessage)
+	require.Contains(t, w.Body.String(), expectedMessage)
+}
+
+func TestHandlePrompt_ApiError(t *testing.T) {
+	mockGen := &mockPromptGenerator{
+		GenerateFunc: func(_ context.Context, _, _ string) (string, error) {
+			return "", errMockAPIFailed
+		},
+	}
+	server := newTestServer(t, mockGen, "test")
+	assertAPIError(t, server, "/prompt", "The AI failed to generate a response. Please try again.")
 }
 
 func TestHandleIndex_WithClearButton(t *testing.T) {
@@ -237,12 +239,8 @@ func TestHandleIndex_WithClearButton(t *testing.T) {
 			return []string{"test-model-1"}
 		},
 	}
-	server, err := NewServer(Config{Generator: mockGen, Version: "test"})
-	require.NoError(t, err)
-
-	w := httptest.NewRecorder()
-	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", http.NoBody)
-	server.e.ServeHTTP(w, req)
+	server := newTestServer(t, mockGen, "test")
+	w := doGET(server, "/")
 
 	require.Equal(t, http.StatusOK, w.Code)
 	// Assert that the clear button exists with the correct HTMX attributes. This will fail.
@@ -252,8 +250,7 @@ func TestHandleIndex_WithClearButton(t *testing.T) {
 
 func TestHandleClear(t *testing.T) {
 	mockGen := &mockPromptGenerator{}
-	server, err := NewServer(Config{Generator: mockGen, Version: "test"})
-	require.NoError(t, err)
+	server := newTestServer(t, mockGen, "test")
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/clear", http.NoBody)
@@ -267,28 +264,11 @@ func TestHandleClear(t *testing.T) {
 }
 
 func TestHandleExecute_ApiError(t *testing.T) {
-	const (
-		userFacingErrorMessage = "The AI failed to execute the prompt. Please try again."
-		selectedModel          = "gemini-2.5-flash"
-	)
-
 	mockGen := &mockPromptGenerator{
 		ExecuteFunc: func(_ context.Context, _, _ string) (string, error) {
 			return "", errMockAPIFailed
 		},
 	}
-
-	server, err := NewServer(Config{Generator: mockGen, Version: "test"})
-	require.NoError(t, err)
-
-	form := strings.NewReader("prompt=test&model=" + selectedModel)
-	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/execute", form)
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
-
-	w := httptest.NewRecorder()
-
-	server.e.ServeHTTP(w, req)
-
-	require.Equal(t, http.StatusInternalServerError, w.Code)
-	require.Contains(t, w.Body.String(), userFacingErrorMessage)
+	server := newTestServer(t, mockGen, "test")
+	assertAPIError(t, server, "/execute", "The AI failed to execute the prompt. Please try again.")
 }

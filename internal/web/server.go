@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"context"
 	"log/slog"
 	"net/http"
 	"prompt-maker/internal/config"
@@ -95,43 +96,45 @@ func (s *Server) handleIndex(c *echo.Context) error {
 }
 
 func (s *Server) handlePrompt(c *echo.Context) error {
-	userInput := c.FormValue("prompt")
-
-	modelName := c.FormValue("model")
-	if userInput == "" || modelName == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Prompt and model cannot be empty.")
-	}
-
-	// Generate the crafted prompt from the user input.
-	craftedPrompt, err := s.generator.Generate(c.Request().Context(), modelName, userInput)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "The AI failed to generate a response. Please try again.")
-	}
-
-	// Convert the markdown response to HTML.
-	craftedPromptHTML := s.markdownToHTML(craftedPrompt)
-
-	return render(c, craftedPromptComponent(craftedPromptHTML, craftedPrompt, modelName))
+	return s.handleGenerate(c, s.generator.Generate, "The AI failed to generate a response. Please try again.",
+		func(html, raw, model string) templ.Component {
+			return craftedPromptComponent(html, raw, model)
+		},
+	)
 }
 
 func (s *Server) handleExecute(c *echo.Context) error {
-	craftedPrompt := c.FormValue("prompt")
+	return s.handleGenerate(c, s.generator.Execute, "The AI failed to execute the prompt. Please try again.",
+		func(html, raw, model string) templ.Component {
+			return finalAnswerComponent(html, raw)
+		},
+	)
+}
+
+// handleGenerate is the shared core for handlePrompt and handleExecute.
+// It reads "prompt" and "model" form values, calls generateFn, converts the
+// result to HTML, and renders the component returned by buildComponent.
+func (s *Server) handleGenerate(
+	c *echo.Context,
+	generateFn func(ctx context.Context, model, input string) (string, error),
+	errMsg string,
+	buildComponent func(html, raw, model string) templ.Component,
+) error {
+	input := c.FormValue("prompt")
 
 	modelName := c.FormValue("model")
-	if craftedPrompt == "" || modelName == "" {
+	if input == "" || modelName == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Prompt and model cannot be empty.")
 	}
 
-	// Execute the crafted prompt to get the final answer.
-	finalAnswer, err := s.generator.Execute(c.Request().Context(), modelName, craftedPrompt)
+	result, err := generateFn(c.Request().Context(), modelName, input)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "The AI failed to execute the prompt. Please try again.")
+		return echo.NewHTTPError(http.StatusInternalServerError, errMsg)
 	}
 
-	// Convert the markdown response to HTML.
-	finalAnswerHTML := s.markdownToHTML(finalAnswer)
+	resultHTML := s.markdownToHTML(result)
 
-	return render(c, finalAnswerComponent(finalAnswerHTML, finalAnswer))
+	return render(c, buildComponent(resultHTML, result, modelName))
 }
 
 func (s *Server) handleUpdateFooter(c *echo.Context) error {

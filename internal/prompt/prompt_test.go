@@ -2,37 +2,22 @@ package prompt
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"testing"
+
+	"prompt-maker/internal/testutil"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genai"
 )
-
-var errSendMessageNotImplemented = errors.New("sendMessageFunc not implemented")
-
-// mockChat is a test double for the gemini.ChatSession.
-type mockChat struct {
-	sendMessageFunc func(ctx context.Context, parts ...genai.Part) (*genai.GenerateContentResponse, error)
-}
-
-// SendMessage implements the gemini.ChatSession interface for our mock.
-func (m *mockChat) SendMessage(ctx context.Context, parts ...genai.Part) (*genai.GenerateContentResponse, error) {
-	if m.sendMessageFunc != nil {
-		return m.sendMessageFunc(ctx, parts...)
-	}
-
-	return nil, errSendMessageNotImplemented
-}
 
 func TestGenerate(t *testing.T) {
 	ctx := context.Background()
 	userInput := "convert a function to a class"
 	expectedAnswer := "This is the optimized prompt."
 
-	mockCS := &mockChat{
-		sendMessageFunc: func(_ context.Context, parts ...genai.Part) (*genai.GenerateContentResponse, error) {
+	mockCS := &testutil.MockChatSession{
+		SendMessageFunc: func(_ context.Context, parts ...genai.Part) (*genai.GenerateContentResponse, error) {
 			require.Len(t, parts, 1)
 
 			sentText := parts[0].Text

@@ -2,10 +2,10 @@ package tui
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"prompt-maker/internal/gemini"
+	"prompt-maker/internal/testutil"
 	"prompt-maker/internal/tui/components"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -13,21 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genai"
 )
-
-// mockChatSession implements gemini.ChatSession for testing.
-var errSendMessageNotImplemented = errors.New("SendMessage not implemented")
-
-type mockChatSession struct {
-	sendMessageFunc func(ctx context.Context, parts ...genai.Part) (*genai.GenerateContentResponse, error)
-}
-
-func (m *mockChatSession) SendMessage(ctx context.Context, parts ...genai.Part) (*genai.GenerateContentResponse, error) {
-	if m.sendMessageFunc != nil {
-		return m.sendMessageFunc(ctx, parts...)
-	}
-
-	return nil, errSendMessageNotImplemented
-}
 
 // mockChatCreator implements the chatCreator interface for testing.
 type mockChatCreator struct {
@@ -43,7 +28,7 @@ func (m *mockChatCreator) Create(
 		return m.createFunc(ctx, model, genConfig, history)
 	}
 
-	return &mockChatSession{}, nil
+	return &testutil.MockChatSession{}, nil
 }
 
 // runCmds executes a tea.Cmd, handling batches, and returns all resulting messages.
@@ -130,6 +115,46 @@ func TestUpdate_ModelSelection_UpdatesState(t *testing.T) {
 	require.Equal(t, "test-model", m.selectedModel)
 }
 
+// runUpdateAndFindAIResponse triggers an Update with keyMsg, asserts the model
+// transitions to viewBusy, runs the resulting command, and returns the first
+// aiResponseMsg found. Fails the test if no aiResponseMsg is produced.
+func runUpdateAndFindAIResponse(t *testing.T, m *model, keyMsg tea.Msg) (*model, aiResponseMsg) {
+	t.Helper()
+
+	updatedModel, cmd := m.Update(keyMsg)
+	m = updatedModel.(*model)
+
+	require.NotNil(t, cmd)
+	require.Equal(t, viewBusy, m.state)
+
+	msgs := runCmds(cmd)
+
+	for _, msg := range msgs {
+		if ai, ok := msg.(aiResponseMsg); ok {
+			return m, ai
+		}
+	}
+
+	require.Fail(t, "Expected an aiResponseMsg")
+
+	return m, aiResponseMsg{} // unreachable
+}
+
+// newMockCreator creates a mockChatCreator that verifies the model name and
+// returns the given session.
+func newMockCreator(t *testing.T, expectedModel string, session gemini.ChatSession) *mockChatCreator {
+	t.Helper()
+
+	return &mockChatCreator{
+		createFunc: func(
+			_ context.Context, model string, _ *genai.GenerateContentConfig, _ []*genai.Content,
+		) (gemini.ChatSession, error) {
+			require.Equal(t, expectedModel, model)
+			return session, nil
+		},
+	}
+}
+
 func TestUpdate_SubmitRoughPrompt_GeneratesCraftedPrompt(t *testing.T) {
 	// Arrange
 	const (
@@ -140,8 +165,8 @@ func TestUpdate_SubmitRoughPrompt_GeneratesCraftedPrompt(t *testing.T) {
 
 	ctx := context.Background()
 
-	mockSession := &mockChatSession{
-		sendMessageFunc: func(_ context.Context, parts ...genai.Part) (*genai.GenerateContentResponse, error) {
+	mockSession := &testutil.MockChatSession{
+		SendMessageFunc: func(_ context.Context, parts ...genai.Part) (*genai.GenerateContentResponse, error) {
 			require.Contains(t, parts[0].Text, userInput, "Should include user input")
 
 			return &genai.GenerateContentResponse{
@@ -152,14 +177,7 @@ func TestUpdate_SubmitRoughPrompt_GeneratesCraftedPrompt(t *testing.T) {
 		},
 	}
 
-	creator := &mockChatCreator{
-		createFunc: func(
-			_ context.Context, model string, _ *genai.GenerateContentConfig, _ []*genai.Content,
-		) (gemini.ChatSession, error) {
-			require.Equal(t, testModel, model)
-			return mockSession, nil
-		},
-	}
+	creator := newMockCreator(t, testModel, mockSession)
 
 	m := New(ctx, creator, "v1", "", "", 0.0).(*model)
 	// Manually advance state past model selection for the test.
@@ -168,35 +186,12 @@ func TestUpdate_SubmitRoughPrompt_GeneratesCraftedPrompt(t *testing.T) {
 	m.textInput.SetValue(userInput)
 
 	// Act
-	// 1. User presses Enter, model becomes busy and returns a command.
-	updatedModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m = updatedModel.(*model)
-
-	require.NotNil(t, cmd)
-	require.Equal(t, viewBusy, m.state)
-
-	// 2. The command runs and returns messages.
-	msgs := runCmds(cmd)
-
-	var (
-		aiMsg aiResponseMsg
-		found bool
-	)
-
-	for _, msg := range msgs {
-		if m, ok := msg.(aiResponseMsg); ok {
-			aiMsg = m
-			found = true
-
-			break
-		}
-	}
-
-	require.True(t, found, "Expected an aiResponseMsg")
+	// 1. User presses Enter, model becomes busy; command runs and returns the crafted prompt.
+	m, aiMsg := runUpdateAndFindAIResponse(t, m, tea.KeyMsg{Type: tea.KeyEnter})
 	require.Equal(t, craftedPrompt, aiMsg.response)
 
 	// 3. The model processes the AI response.
-	updatedModel, cmd = m.Update(aiMsg)
+	updatedModel, cmd := m.Update(aiMsg)
 	m = updatedModel.(*model)
 
 	require.Nil(t, cmd)
@@ -218,8 +213,8 @@ func TestUpdate_ResubmitCraftedPrompt_GetsFinalAnswer(t *testing.T) {
 
 	ctx := context.Background()
 
-	mockSession := &mockChatSession{
-		sendMessageFunc: func(_ context.Context, parts ...genai.Part) (*genai.GenerateContentResponse, error) {
+	mockSession := &testutil.MockChatSession{
+		SendMessageFunc: func(_ context.Context, parts ...genai.Part) (*genai.GenerateContentResponse, error) {
 			require.Equal(t, craftedPrompt, parts[0].Text, "Should send the crafted prompt directly")
 
 			return &genai.GenerateContentResponse{
@@ -230,14 +225,7 @@ func TestUpdate_ResubmitCraftedPrompt_GetsFinalAnswer(t *testing.T) {
 		},
 	}
 
-	creator := &mockChatCreator{
-		createFunc: func(
-			_ context.Context, model string, _ *genai.GenerateContentConfig, _ []*genai.Content,
-		) (gemini.ChatSession, error) {
-			require.Equal(t, testModel, model)
-			return mockSession, nil
-		},
-	}
+	creator := newMockCreator(t, testModel, mockSession)
 
 	// Start the model in the state where a prompt has been crafted.
 	m := New(ctx, creator, "v1", "", "", 0.0).(*model)
@@ -247,35 +235,12 @@ func TestUpdate_ResubmitCraftedPrompt_GetsFinalAnswer(t *testing.T) {
 	m.textInput.Placeholder = placeholderResubmit
 
 	// Act
-	// 1. User presses 'r', model becomes busy and returns a command.
-	updatedModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
-	m = updatedModel.(*model)
-
-	require.NotNil(t, cmd)
-	require.Equal(t, viewBusy, m.state)
-
-	// 2. The command runs and returns the final answer.
-	msgs := runCmds(cmd)
-
-	var (
-		aiMsg aiResponseMsg
-		found bool
-	)
-
-	for _, msg := range msgs {
-		if m, ok := msg.(aiResponseMsg); ok {
-			aiMsg = m
-			found = true
-
-			break
-		}
-	}
-
-	require.True(t, found, "Expected an aiResponseMsg")
+	// 1. User presses 'r', model becomes busy; command runs and returns the final answer.
+	m, aiMsg := runUpdateAndFindAIResponse(t, m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
 	require.Equal(t, finalAnswer, aiMsg.response)
 
 	// 3. The model processes the final answer.
-	updatedModel, cmd = m.Update(aiMsg)
+	updatedModel, cmd := m.Update(aiMsg)
 	m = updatedModel.(*model)
 
 	require.Nil(t, cmd)
