@@ -133,7 +133,7 @@ func TestHandleIndex_WithDaisyUI(t *testing.T) {
 	w := doGETIndex(server)
 
 	require.Equal(t, http.StatusOK, w.Code)
-	require.Contains(t, w.Body.String(), "Model: "+config.DefaultModel)
+	require.Contains(t, w.Body.String(), config.DefaultModel)
 }
 
 func TestHandleExecute(t *testing.T) {
@@ -188,7 +188,7 @@ func TestHandleUpdateFooter(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, w.Code)
 
-	expectedFragment := fmt.Sprintf("<p>Prompt Maker v%s | Model: %s</p>", testVersion, selectedModel)
+	expectedFragment := fmt.Sprintf("prompt-maker v%s / %s", testVersion, selectedModel)
 	require.Contains(t, w.Body.String(), expectedFragment)
 }
 
