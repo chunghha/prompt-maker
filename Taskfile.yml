@@ -14,11 +14,12 @@ tasks:
     desc: "Install node.js dependencies using pnpm."
     cmds:
       - pnpm install
+      - touch node_modules/.pnpm-stamp
     sources:
       - package.json
       - pnpm-lock.yaml
     generates:
-      - node_modules/.pnpm-stamp # A file to track if install is needed
+      - node_modules/.pnpm-stamp
 
   copy:fonts:
     desc: "Copies font files from node_modules to the static directory."
